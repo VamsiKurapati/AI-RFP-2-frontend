@@ -1,0 +1,365 @@
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { MdOutlineSave, MdOutlineBusinessCenter, MdOutlineDomain } from "react-icons/md";
+import PhoneNumberInput, { validatePhoneNumber } from '../components/PhoneNumberInput';
+import LocationInput from '../components/LocationInput';
+import { useEmployeeProfile } from "../context/EmployeeProfileContext";
+import Swal from "sweetalert2";
+
+const INDUSTRY_OPTIONS = [
+    "Information Technology",
+    "Healthcare",
+    "Finance",
+    "Education",
+    "Manufacturing",
+    "Retail",
+    "Construction",
+    "Consulting",
+    "Marketing",
+    "Legal",
+    "Real Estate",
+    "Transportation",
+    "Hospitality",
+    "Other",
+];
+
+const EMPLOYEE_OPTIONS = [
+    "1-10",
+    "11-50",
+    "51-200",
+    "201-500",
+    "501-1000",
+    "1001-5000",
+    "5001-10000",
+    "10000+",
+];
+
+const getYearOptions = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let y = currentYear; y >= 1950; y--) {
+        years.push(y.toString());
+    }
+    return years;
+};
+
+// Reusable input component
+const FormInput = ({
+    label,
+    type = "text",
+    value,
+    onChange,
+    error,
+    required = false,
+    id,
+    disabled = false,
+    placeholder,
+    ...props
+}) => (
+    <div className="mb-4">
+        <label htmlFor={id} className="text-[18px] md:text-[24px] font-medium text-[#111827]">
+            {label} {required && "*"}
+        </label>
+        <input
+            id={id}
+            type={type}
+            value={value}
+            onChange={onChange}
+            required={required}
+            disabled={disabled}
+            placeholder={placeholder}
+            className={`w-full border rounded-md mt-1 p-2 bg-[#F0F0F0] ${error ? "border-red-500" : ""} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+            {...props}
+        />
+        {error && <div className="text-red-500 text-sm mt-1">{error}</div>}
+    </div>
+);
+
+// Phone input component - now using the reusable PhoneNumberInput
+const PhoneInputField = ({
+    value,
+    onChange,
+    error,
+    disabled = false
+}) => (
+    <PhoneNumberInput
+        label="Phone"
+        value={value}
+        onChange={onChange}
+        error={error}
+        disabled={disabled}
+        required={true}
+        placeholder="Enter Your Mobile Number"
+        country="us"
+        inputStyle={{
+            backgroundColor: "#D9D9D966",
+            fontSize: "20px",
+        }}
+        containerClass="w-full md:w-[436px]"
+    />
+);
+
+const EmployeeProfileUpdate = () => {
+    const navigate = useNavigate();
+    const { employeeData } = useEmployeeProfile();
+
+    const [form, setForm] = useState({
+        location: employeeData?.location || "",
+        email: employeeData?.email || "",
+        phone: employeeData?.phone || "",
+        name: employeeData?.name || "",
+        highestQualification: employeeData?.highestQualification || "",
+        skills: employeeData?.skills ? employeeData.skills.join(", ") : "" || "",
+    });
+
+    const [errors, setErrors] = useState({});
+    const [isLoading, setIsLoading] = useState(false);
+    const handleInputChange = (field, value) => {
+        setForm(prev => ({ ...prev, [field]: value }));
+        if (errors[field]) {
+            setErrors(prev => ({ ...prev, [field]: "" }));
+        }
+    };
+
+    const validateForm = () => {
+        const newErrors = {};
+        const phoneError = validatePhoneNumber(form.phone, true);
+
+        if (!form.name.trim()) newErrors.name = "Employee name is required";
+        if (!form.location.trim()) newErrors.location = "Location is required";
+        if (!form.highestQualification.trim()) newErrors.highestQualification = "Highest qualification is required";
+        if (!form.skills.trim()) newErrors.skills = "Skills are required";
+        if (!form.email.trim()) newErrors.email = "Email is required";
+
+        if (phoneError) newErrors.phone = phoneError;
+
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (form.email && !emailRegex.test(form.email)) {
+            newErrors.email = "Please enter a valid email address";
+        }
+
+        return newErrors;
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setErrors({});
+        const validationErrors = validateForm();
+
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append("location", form.location);
+            formData.append("email", form.email);
+            formData.append("phone", form.phone);
+            formData.append("name", form.name);
+            formData.append("highestQualification", form.highestQualification);
+
+            // , separating skills by commas
+            let skillsArray = form.skills.split(',').map(skill => skill.trim());
+            if (skillsArray.length === 0 || (skillsArray.length === 1 && skillsArray[0] === "")) {
+                skillsArray = [];
+            }
+            formData.append("skills", skillsArray);
+
+            const response = await axios.put(`${import.meta.env.VITE_API_BASE_URL}/profile/updateEmployeeProfile`, formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`
+                    }
+                }
+            );
+
+            if (response.status === 200) {
+                Swal.fire({
+                    title: 'Profile updated successfully!',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    showCancelButton: false,
+                });
+                setTimeout(() => {
+                    navigate("/employee-profile");
+                    window.location.reload();
+                }, 1500);
+            }
+        } catch (error) {
+            // console.error(error);
+            Swal.fire({
+                title: 'Failed to update profile ',
+                text: `${error.response?.data?.message || error.message}`,
+                icon: 'error',
+                timer: 1500,
+                showConfirmButton: true,
+                showCancelButton: false,
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#DC2626',
+                cancelButtonColor: '#6B7280',
+                cancelButtonText: 'Cancel',
+                dangerMode: true,
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleCancel = () => {
+        navigate("/employee-profile");
+    };
+
+    return (
+        <div className="min-h-screen bg-[#F8F9FA] pb-24 md:pb-28">
+            {/* Header */}
+            <div className="bg-white shadow-sm border-b">
+                <div className="max-w-4xl mx-auto px-4 py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-center w-full mx-auto gap-4">
+                            <h1 className="text-2xl font-semibold text-[#111827]">Edit Employee Profile</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Form */}
+            <div className="w-full mx-auto px-8 md:px-12 py-8">
+                <form onSubmit={handleSubmit} className="space-y-8">
+                    {/* Basic Information */}
+                    <div className="bg-white rounded-lg shadow-sm border border-[#E5E7EB] p-6">
+                        <h2 className="text-xl font-semibold text-[#111827] mb-6 flex items-center gap-2">
+                            <MdOutlineBusinessCenter className="w-6 h-6 text-[#2563EB]" />
+                            Basic Information
+                        </h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                            <div className="col-span-2 md:col-span-1">
+                                <FormInput
+                                    id="name"
+                                    label="Employee Name"
+                                    value={form.name}
+                                    onChange={(e) => handleInputChange('name', e.target.value)}
+                                    error={errors.name}
+                                    required
+                                    disabled={isLoading}
+                                    placeholder="Enter Your Name"
+                                />
+                            </div>
+
+                            <div className="col-span-2 md:col-span-1">
+                                <LocationInput
+                                    id="location"
+                                    label="Location"
+                                    value={form.location}
+                                    onChange={(e) => handleInputChange('location', e.target.value)}
+                                    error={errors.location}
+                                    required
+                                    disabled={isLoading}
+                                    placeholder="E.g., San Francisco, CA"
+                                />
+                            </div>
+
+                            <div className="col-span-2 md:col-span-1">
+                                <FormInput
+                                    id="email"
+                                    label="Email"
+                                    type="email"
+                                    value={form.email}
+                                    onChange={(e) => handleInputChange('email', e.target.value)}
+                                    error={errors.email}
+                                    required
+                                    disabled={true}
+                                    placeholder="contact@company.com"
+                                />
+                            </div>
+
+                            <div className="col-span-2 md:col-span-1">
+                                <PhoneInputField
+                                    value={form.phone}
+                                    onChange={phone => handleInputChange('phone', phone)}
+                                    error={errors.phone}
+                                    disabled={isLoading}
+                                />
+                            </div>
+                        </div>
+
+                        <h2 className="text-xl font-semibold text-[#111827] mt-8 mb-6 flex items-center gap-2">
+                            <MdOutlineDomain className="w-6 h-6 text-[#2563EB]" />
+                            Education and Skills
+                        </h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                            <div className="col-span-2 md:col-span-1">
+                                <FormInput
+                                    id="highestQualification"
+                                    label="Highest Qualification"
+                                    value={form.highestQualification}
+                                    onChange={(e) => handleInputChange('highestQualification', e.target.value)}
+                                    error={errors.highestQualification}
+                                    required
+                                    disabled={isLoading}
+                                    placeholder="E.g., Bachelor's In Computer Science"
+                                />
+                            </div>
+
+                            <div className="col-span-2 md:col-span-1">
+                                <FormInput
+                                    id="skills"
+                                    label="Skills"
+                                    value={form.skills}
+                                    onChange={(e) => handleInputChange('skills', e.target.value)}
+                                    error={errors.skills}
+                                    required
+                                    disabled={isLoading}
+                                    placeholder="E.g., JavaScript, React"
+                                />
+                                <span className="text-[16px] font-light text-[#111827]">
+                                    (Please enter your skills separated by commas)
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            {/* Sticky Submit Button */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40 p-4">
+                <div className="max-w-4xl mx-auto flex gap-3 justify-center">
+                    <button
+                        onClick={handleCancel}
+                        disabled={isLoading}
+                        className="px-6 py-3 border border-[#E5E7EB] rounded-lg text-[#6B7280] hover:bg-[#F9FAFB] transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Cancel and discard changes"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={isLoading}
+                        className="px-6 py-3 bg-[#2563EB] text-white rounded-lg hover:bg-[#1d4ed8] transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        title={isLoading ? "Saving your profile changes..." : "Save all profile changes"}
+                    >
+                        {isLoading ? (
+                            <>
+                                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                                <span>Saving...</span>
+                            </>
+                        ) : (
+                            <>
+                                <MdOutlineSave className="w-5 h-5" />
+                                <span>Save Changes</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default EmployeeProfileUpdate; 

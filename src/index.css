@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.custom-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 3px;
+}
+
+.custom-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* Hide scrollbar but keep scroll functionality */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none !important;
+  /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  /* Chrome, Safari, Opera */
+}
+
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  /* Removed overflow: hidden to allow scrolling */
+}
+
+/* Custom radio button styles */
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #d1d5db;
+  border-radius: 50%;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+input[type="radio"]:checked {
+  border-color: #3b82f6;
+  background: white;
+}
+
+input[type="radio"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b82f6;
+}
+
+input[type="radio"]:hover {
+  border-color: #3b82f6;
+}
+
+input[type="radio"]:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+:root {
+  --gmpx-color-surface: #ffffff;
+  --gmpx-color-on-surface: #000000;
+  --gmpx-color-on-surface-variant: #5f6368;
+  --gmpx-color-primary: #1a73e8;
+  --gmpx-color-outline: #dadce0;
+  --gmpx-fixed-panel-height-row-layout: 56px;
+  --gmpx-font-family-base: "Roboto", sans-serif;
+  --gmpx-font-family-headings: "Roboto", sans-serif;
+  --gmpx-font-size-base: 1rem;
+}
+
+gmp-place-autocomplete {
+  /* Force light theme */
+  color-scheme: light;
+  --gmpx-color-surface: #ffffff;
+  --gmpx-color-on-surface: #000000;
+}
+
+/* Target the shadow DOM parts */
+gmp-place-autocomplete::part(input) {
+  background: white !important;
+  color: black !important;
+  border: none !important;
+}
+
+gmp-place-autocomplete::part(container) {
+  background: white !important;
+}
