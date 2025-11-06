@@ -212,7 +212,7 @@ const Compliance = () => {
                     setTimeout(() => {
                         navigate('/basic-compliance-check', { state: { data: res.data } });
                     }, 1500);
-                } else if (res.status === 404 && res.data.message === "RFP not found") {
+                } else if (res.status === 404 && res.data.message === "No more attempts allowed") {
                     Swal.fire(ALERT_CONFIGS.attemptsExceeded);
                 } else {
                     Swal.fire(ALERT_CONFIGS.error);
@@ -243,7 +243,7 @@ const Compliance = () => {
                     setTimeout(() => {
                         navigate('/advanced-compliance-check', { state: { data: res.data } });
                     }, 1500);
-                } else if (res.status === 404 && res.data.message === "RFP not found") {
+                } else if (res.status === 404 && res.data.message === "No more attempts allowed") {
                     Swal.fire(ALERT_CONFIGS.attemptsExceeded);
                 } else {
                     Swal.fire(ALERT_CONFIGS.error);
