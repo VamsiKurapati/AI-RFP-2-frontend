@@ -54,6 +54,9 @@ const CheckoutForm = ({ selectedPlan, billingCycle, onSuccess, onError }) => {
 
                 if (response.data && response.data.clientSecret) {
                     setClientSecret(response.data.clientSecret);
+                } else if (response.data && response.data.url) {
+                    //Open the url in a new tab
+                    window.open(response.data.url, '_blank');
                 } else {
                     setError('Invalid response from payment server. Please try again.');
                 }

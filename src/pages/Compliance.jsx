@@ -63,6 +63,14 @@ const ALERT_CONFIGS = {
         timer: 1000,
         showConfirmButton: false,
         showCancelButton: false,
+    },
+    attemptsExceeded: {
+        title: "Error",
+        text: "You have exceeded the maximum number of attempts to check compliance against this RFP. Please upgrade your plan to check compliance.",
+        icon: "error",
+        timer: 1500,
+        showConfirmButton: false,
+        showCancelButton: false,
     }
 };
 
@@ -188,6 +196,7 @@ const Compliance = () => {
         if (userSubscription?.plan_name === "Basic") {
             const formData = new FormData();
             formData.append('file', uploadedFile);
+            formData.append('rfpId', data.rfpId || data._id);
             try {
                 setComplianceCheck(true);
 
@@ -203,6 +212,8 @@ const Compliance = () => {
                     setTimeout(() => {
                         navigate('/basic-compliance-check', { state: { data: res.data } });
                     }, 1500);
+                } else if (res.status === 404 && res.data.message === "RFP not found") {
+                    Swal.fire(ALERT_CONFIGS.attemptsExceeded);
                 } else {
                     Swal.fire(ALERT_CONFIGS.error);
                 }
@@ -232,6 +243,8 @@ const Compliance = () => {
                     setTimeout(() => {
                         navigate('/advanced-compliance-check', { state: { data: res.data } });
                     }, 1500);
+                } else if (res.status === 404 && res.data.message === "RFP not found") {
+                    Swal.fire(ALERT_CONFIGS.attemptsExceeded);
                 } else {
                     Swal.fire(ALERT_CONFIGS.error);
                 }
