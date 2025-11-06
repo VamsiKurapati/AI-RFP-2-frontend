@@ -308,7 +308,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
 
             {getPageNumbers().map((page, index) => (
                 <button
-                    key={index}
+                    key={`page-${typeof page === 'number' ? page : `ellipsis-${index}`}`}
                     onClick={() => typeof page === 'number' && onPageChange(page)}
                     disabled={page === '...'}
                     aria-label={page === '...' ? 'Page separator' : `Go to page ${page}`}
@@ -1131,7 +1131,7 @@ const Proposals = () => {
                                         )}
                                         {currentSavedProposals.map((proposal, idx) => (
                                             <ProposalCard
-                                                key={proposal._id}
+                                                key={proposal._id || proposal.rfpId || `saved-proposal-${idx}`}
                                                 proposal_info={{
                                                     ...proposal,
                                                     bookmarked: true
@@ -1182,7 +1182,7 @@ const Proposals = () => {
                                         {currentDraftProposals.map((proposal, idx) => {
                                             return (
                                                 <ProposalCard
-                                                    key={proposal._id}
+                                                    key={proposal._id || proposal.rfpId || `draft-proposal-${idx}`}
                                                     proposal_info={{
                                                         ...proposal,
                                                         bookmarked: false
@@ -1225,7 +1225,7 @@ const Proposals = () => {
                                 {currentSavedGrants.length > 0 ? (
                                     currentSavedGrants.map((grant, idx) => (
                                         <GrantCard
-                                            key={grant._id}
+                                            key={grant._id || grant.OPPORTUNITY_NUMBER || `saved-grant-${idx}`}
                                             grant_info={{
                                                 ...grant,
                                                 bookmarked: true
@@ -1268,7 +1268,7 @@ const Proposals = () => {
                                     currentDraftGrants.map((grant, idx) => {
                                         return (
                                             <GrantCard
-                                                key={grant._id}
+                                                key={grant._id || grant.OPPORTUNITY_NUMBER || `draft-grant-${idx}`}
                                                 grant_info={{
                                                     ...grant,
                                                     bookmarked: false

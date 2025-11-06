@@ -68,9 +68,11 @@ const ALERT_CONFIGS = {
         title: "Error",
         text: "You have exceeded the maximum number of attempts to check compliance against this RFP. Please upgrade your plan to check compliance.",
         icon: "error",
-        timer: 1500,
-        showConfirmButton: false,
+        timer: null,
+        showConfirmButton: true,
         showCancelButton: false,
+        confirmButtonText: "OK",
+        confirmButtonColor: "#DC2626",
     }
 };
 
@@ -218,7 +220,11 @@ const Compliance = () => {
                     Swal.fire(ALERT_CONFIGS.error);
                 }
             } catch (error) {
-                Swal.fire(ALERT_CONFIGS.error);
+                if (error.response?.status === 404 && error.response?.data?.message === "No more attempts allowed") {
+                    Swal.fire(ALERT_CONFIGS.attemptsExceeded);
+                } else {
+                    Swal.fire(ALERT_CONFIGS.error);
+                }
             } finally {
                 setComplianceCheck(false);
                 return;
@@ -243,13 +249,17 @@ const Compliance = () => {
                     setTimeout(() => {
                         navigate('/advanced-compliance-check', { state: { data: res.data } });
                     }, 1500);
-                } else if (res.status === 404 && res.data.message === "No more attempts allowed") {
+                } else if (error.response?.status === 404 && error.response?.data?.message === "No more attempts allowed") {
                     Swal.fire(ALERT_CONFIGS.attemptsExceeded);
                 } else {
                     Swal.fire(ALERT_CONFIGS.error);
                 }
             } catch (error) {
-                Swal.fire(ALERT_CONFIGS.error);
+                if (error.response?.status === 404 && error.response?.data?.message === "No more attempts allowed") {
+                    Swal.fire(ALERT_CONFIGS.attemptsExceeded);
+                } else {
+                    Swal.fire(ALERT_CONFIGS.error);
+                }
             } finally {
                 setComplianceCheck(false);
                 return;

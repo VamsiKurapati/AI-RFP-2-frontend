@@ -484,15 +484,6 @@ const ProposalDetails = () => {
                                     </div>
                                 )}
 
-                                {isRFP && proposal.email && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-500 mb-2">
-                                            Email
-                                        </label>
-                                        <p className="text-gray-900">{proposal.email}</p>
-                                    </div>
-                                )}
-
                                 {!isRFP && proposal.GRANTOR_CONTACT && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-500 mb-2">
