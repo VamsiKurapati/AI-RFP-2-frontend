@@ -34,6 +34,7 @@ const SuperAdmin = lazy(() => import("./Super_Admin/SuperAdmin"));
 const SupportTicket = lazy(() => import("./pages/SupportTicket"));
 const StripePaymentPage = lazy(() => import("./pages/StripePaymentPage"));
 const ProposalDetails = lazy(() => import("./pages/ProposalDetails"));
+const RFPDetails = lazy(() => import("./pages/RFPDetails"));
 
 const App = () => {
   return (
@@ -132,6 +133,12 @@ const App = () => {
           <Route path="/proposal-details/:proposalId" element={
             <ProtectedRoutes allowedRoles={["company", "Editor", "Viewer"]}>
               <ProposalDetails />
+            </ProtectedRoutes>
+          } />
+
+          <Route path="/rfp-details" element={
+            <ProtectedRoutes allowedRoles={["company", "Editor", "Viewer"]}>
+              <RFPDetails />
             </ProtectedRoutes>
           } />
 

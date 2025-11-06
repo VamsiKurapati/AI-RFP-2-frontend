@@ -16,6 +16,7 @@
     "@stripe/react-stripe-js": "^3.9.2",
     "@stripe/stripe-js": "^7.9.0",
     "axios": "^1.9.0",
+    "country-state-city": "^3.2.1",
     "html2pdf.js": "^0.10.3",
     "jwt-decode": "^4.0.0",
     "libphonenumber-js": "^1.12.9",

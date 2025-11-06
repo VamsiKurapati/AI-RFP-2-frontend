@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import { useNavigate, useLocation } from 'react-router-dom';
 import NavbarComponent from './NavbarComponent';
 import { MdOutlineArrowBack, MdOutlineOpenInNew } from 'react-icons/md';
 
@@ -14,6 +13,7 @@ const statusBadge = (status) => {
         "Forecasted": "bg-[#FEF3C7] text-[#F59E42]",
         "Closed": "bg-[#FEE2E2] text-[#DC2626]",
         "Archived": "bg-[#F3F4F6] text-[#6B7280]",
+        "Matched": "bg-[#DBEAFE] text-[#2563EB]",
     };
 
     return (
@@ -23,100 +23,51 @@ const statusBadge = (status) => {
     );
 };
 
-const ProposalDetails = () => {
+const RFPDetails = () => {
     const location = useLocation();
-    const [searchParams] = useSearchParams();
-    const type = searchParams.get('type') || 'rfp';
     const navigate = useNavigate();
-    const [proposal, setProposal] = useState(null);
+    const [item, setItem] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const itemData = location.state?.item;
+    const type = location.state?.type || 'rfp';
     const isRFP = type === 'rfp';
-    const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/dashboard`;
-
-    const proposalDetails = location.state?.proposal;
 
     useEffect(() => {
-        const fetchProposalDetails = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const token = localStorage.getItem('token');
-
-                // First try dedicated endpoint (if it exists)
-                try {
-                    const id = isRFP
-                        ? (proposalDetails.rfpId || proposalDetails._id)
-                        : (proposalDetails.grantId || proposalDetails._id);
-
-                    const endpoint = isRFP
-                        ? `${BASE_URL}/getRFPDetails/${id}`
-                        : `${BASE_URL}/getGrantDetails/${id}`;
-
-                    const res = await axios.get(endpoint, {
-                        headers: {
-                            Authorization: `Bearer ${token}`
-                        }
-                    });
-
-                    if (res.status === 200 && res.data) {
-                        setProposal(res.data);
-                        setLoading(false);
-                        return;
-                    }
-                } catch (dedicatedErr) {
-                    // If dedicated endpoint doesn't exist, fall back to dashboard data
-                    console.log('Dedicated endpoint not available, using dashboard data');
-                    // Use data from location.state if available
-                    if (proposalDetails) {
-                        setProposal(proposalDetails);
-                        setLoading(false);
-                        return;
-                    }
-                }
-            } catch (err) {
-                // If there's an error, try to use data from location.state
-                if (proposalDetails) {
-                    setProposal(proposalDetails);
-                    setLoading(false);
-                    return;
-                }
-                setError(err.response?.data?.message || 'Failed to load proposal details');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (proposalDetails) {
-            fetchProposalDetails();
+        if (itemData) {
+            setItem(itemData);
+            setLoading(false);
+        } else {
+            setError('Item not found');
+            setLoading(false);
         }
-    }, [proposalDetails, type, isRFP, BASE_URL]);
+    }, [itemData]);
 
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="flex flex-col items-center justify-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
-                    <p className="text-gray-500 mt-4">Loading proposal details...</p>
+                    <p className="text-gray-500 mt-4">Loading details...</p>
                 </div>
             </div>
         );
     }
 
-    if (error || !proposal) {
+    if (error || !item) {
         return (
             <div className="min-h-screen">
                 <NavbarComponent />
                 <main className="w-full mx-auto py-8 px-4 md:px-12 mt-20">
                     <div className="bg-white rounded-lg shadow p-6">
-                        <p className="text-red-600">{error || 'Proposal not found'}</p>
+                        <p className="text-red-600">{error || 'Item not found'}</p>
                         <button
-                            onClick={() => navigate('/dashboard')}
+                            onClick={() => navigate('/discover')}
                             className="mt-4 px-4 py-2 bg-[#2563EB] text-white rounded-md hover:bg-[#1D4ED8] transition-colors"
-                            title="Return to dashboard"
+                            title="Return to discovery page"
                         >
-                            Back to Dashboard
+                            Back to Discovery
                         </button>
                     </div>
                 </main>
@@ -126,24 +77,23 @@ const ProposalDetails = () => {
 
     // Extract common fields
     const title = isRFP
-        ? (proposal.title || proposal.OPPORTUNITY_TITLE || 'Not Provided')
-        : (proposal.OPPORTUNITY_TITLE || proposal.title || 'Not Provided');
-    const clientOrAgency = isRFP
-        ? (proposal.organization || proposal.client || 'Not Provided')
-        : (proposal.AGENCY_NAME || proposal.client || 'Not Provided');
+        ? (item.title || 'Not Provided')
+        : (item.OPPORTUNITY_TITLE || 'Not Provided');
+    const organizationOrAgency = isRFP
+        ? (item.organization || 'Not Provided')
+        : (item.AGENCY_NAME || 'Not Provided');
     const deadline = isRFP
-        ? (proposal.deadline || proposal.CLOSE_DATE)
-        : (proposal.CLOSE_DATE || proposal.ESTIMATED_APPLICATION_DUE_DATE || proposal.deadline);
+        ? (item.deadline || 'Not Provided')
+        : (item.CLOSE_DATE || item.ESTIMATED_APPLICATION_DUE_DATE || 'Not Provided');
     const status = isRFP
-        ? (proposal.status || proposal.type || 'Not Provided')
-        : (proposal.OPPORTUNITY_STATUS || proposal.status || 'Not Provided');
-    const submittedAt = proposal.submittedAt;
+        ? (item.type || 'Not Provided')
+        : (item.OPPORTUNITY_STATUS || 'Not Provided');
     const description = isRFP
-        ? proposal.description
-        : (proposal.FUNDING_DESCRIPTION || proposal.description);
+        ? item.description
+        : (item.FUNDING_DESCRIPTION || '');
     const externalUrl = isRFP
-        ? (proposal.link || proposal.url || proposal.urlLink)
-        : (proposal.OPPORTUNITY_NUMBER_LINK || proposal.LINK_TO_ADDITIONAL_INFORMATION || proposal.url || proposal.urlLink || proposal.link);
+        ? (item.link || item.url || item.urlLink)
+        : (item.OPPORTUNITY_NUMBER_LINK || item.LINK_TO_ADDITIONAL_INFORMATION || item.url || item.urlLink || item.link);
 
     const handleExternalLink = () => {
         if (externalUrl && externalUrl !== '#') {
@@ -153,7 +103,7 @@ const ProposalDetails = () => {
 
     // Format date helper
     const formatDate = (dateString) => {
-        if (!dateString) return 'Not Provided';
+        if (!dateString || dateString === 'Not Provided' || dateString === 'Not Disclosed') return 'Not Provided';
         try {
             return new Date(dateString).toLocaleDateString('en-US', {
                 year: 'numeric',
@@ -167,7 +117,7 @@ const ProposalDetails = () => {
 
     // Format currency helper
     const formatCurrency = (amount) => {
-        if (!amount || amount === 'Not Found' || amount === 'Not Provided') return 'Not Provided';
+        if (!amount || amount === 'Not Found' || amount === 'Not Provided' || amount === 'none') return 'Not Provided';
         if (typeof amount === 'string' && isNaN(amount)) return amount;
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -187,21 +137,21 @@ const ProposalDetails = () => {
             <main className="w-full mx-auto py-8 px-4 md:px-12 mt-20 max-w-6xl">
                 {/* Back Button */}
                 <button
-                    onClick={() => navigate('/dashboard')}
+                    onClick={() => navigate('/discover')}
                     className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-                    title="Return to dashboard"
+                    title="Return to discovery page"
                 >
                     <MdOutlineArrowBack className="w-5 h-5" />
-                    <span>Back to Dashboard</span>
+                    <span>Back to Discovery</span>
                 </button>
 
-                {/* Proposal Details Card */}
+                {/* Details Card */}
                 <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
                     <div className="border-b border-gray-200 pb-6 mb-6">
                         <div className="flex items-start gap-4 mb-4">
-                            {isRFP && proposal.logo && (
+                            {isRFP && item.logo && item.logo !== "None" && (
                                 <img
-                                    src={proposal.logo}
+                                    src={item.logo}
                                     alt="Organization logo"
                                     className="w-16 h-16 object-contain"
                                     onError={(e) => {
@@ -214,7 +164,7 @@ const ProposalDetails = () => {
                                 <div className="flex items-center gap-3">
                                     {statusBadge(status)}
                                     <span className="text-sm text-gray-500">
-                                        {isRFP ? 'RFP Proposal' : 'Grant Proposal'}
+                                        {isRFP ? 'RFP' : 'Grant'}
                                     </span>
                                 </div>
                             </div>
@@ -226,24 +176,24 @@ const ProposalDetails = () => {
                             <label className="block text-sm font-medium text-gray-500 mb-2">
                                 {isRFP ? 'Organization' : 'Agency Name'}
                             </label>
-                            <p className="text-lg text-gray-900">{clientOrAgency}</p>
+                            <p className="text-lg text-gray-900">{organizationOrAgency}</p>
                         </div>
 
-                        {isRFP && proposal.organizationType && (
+                        {isRFP && item.organizationType && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Organization Type
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.organizationType}</p>
+                                <p className="text-lg text-gray-900">{item.organizationType}</p>
                             </div>
                         )}
 
-                        {!isRFP && proposal.AGENCY_CODE && (
+                        {!isRFP && item.AGENCY_CODE && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Agency Code
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.AGENCY_CODE}</p>
+                                <p className="text-lg text-gray-900">{item.AGENCY_CODE}</p>
                             </div>
                         )}
 
@@ -256,195 +206,186 @@ const ProposalDetails = () => {
                             </p>
                         </div>
 
-                        {!isRFP && proposal.ESTIMATED_APPLICATION_DUE_DATE && (
+                        {!isRFP && item.ESTIMATED_APPLICATION_DUE_DATE && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Estimated Application Due Date
                                 </label>
                                 <p className="text-lg text-gray-900">
-                                    {formatDate(proposal.ESTIMATED_APPLICATION_DUE_DATE)}
+                                    {formatDate(item.ESTIMATED_APPLICATION_DUE_DATE)}
                                 </p>
                             </div>
                         )}
 
-                        {!isRFP && proposal.POSTED_DATE && (
+                        {!isRFP && item.POSTED_DATE && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Posted Date
                                 </label>
                                 <p className="text-lg text-gray-900">
-                                    {formatDate(proposal.POSTED_DATE)}
+                                    {formatDate(item.POSTED_DATE)}
                                 </p>
                             </div>
                         )}
 
-                        {!isRFP && proposal.ESTIMATED_POST_DATE && (
+                        {!isRFP && item.ESTIMATED_POST_DATE && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Estimated Post Date
                                 </label>
                                 <p className="text-lg text-gray-900">
-                                    {formatDate(proposal.ESTIMATED_POST_DATE)}
+                                    {formatDate(item.ESTIMATED_POST_DATE)}
                                 </p>
                             </div>
                         )}
 
-                        {isRFP && proposal.solicitationNumber && (
+                        {isRFP && item.solicitationNumber && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Solicitation Number
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.solicitationNumber}</p>
+                                <p className="text-lg text-gray-900">{item.solicitationNumber}</p>
                             </div>
                         )}
 
-                        {!isRFP && proposal.OPPORTUNITY_NUMBER && (
+                        {!isRFP && item.OPPORTUNITY_NUMBER && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Opportunity Number
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.OPPORTUNITY_NUMBER}</p>
+                                <p className="text-lg text-gray-900">{item.OPPORTUNITY_NUMBER}</p>
                             </div>
                         )}
 
-                        {isRFP && proposal.match !== undefined && (
+                        {isRFP && item.match !== undefined && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Match Score
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.match.toFixed(2)}%</p>
+                                <p className="text-lg text-gray-900">{item.match.toFixed(2)}%</p>
                             </div>
                         )}
 
-                        {isRFP && proposal.budget && proposal.budget !== 'Not Found' && (
+                        {isRFP && item.budget && item.budget !== 'Not Found' && item.budget !== 'Not found' && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Budget
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.budget}</p>
+                                <p className="text-lg text-gray-900">{item.budget}</p>
                             </div>
                         )}
 
-                        {!isRFP && proposal.ESTIMATED_TOTAL_FUNDING && (
+                        {!isRFP && item.ESTIMATED_TOTAL_FUNDING && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Estimated Total Funding
                                 </label>
                                 <p className="text-lg text-gray-900">
-                                    {formatCurrency(proposal.ESTIMATED_TOTAL_FUNDING)}
+                                    {formatCurrency(item.ESTIMATED_TOTAL_FUNDING)}
                                 </p>
                             </div>
                         )}
 
-                        {!isRFP && proposal.AWARD_CEILING && (
+                        {!isRFP && item.AWARD_CEILING && item.AWARD_CEILING !== 'none' && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Award Ceiling
                                 </label>
                                 <p className="text-lg text-gray-900">
-                                    {formatCurrency(proposal.AWARD_CEILING)}
+                                    {formatCurrency(item.AWARD_CEILING)}
                                 </p>
                             </div>
                         )}
 
-                        {!isRFP && proposal.AWARD_FLOOR && (
+                        {!isRFP && item.AWARD_FLOOR && item.AWARD_FLOOR !== 'none' && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Award Floor
                                 </label>
                                 <p className="text-lg text-gray-900">
-                                    {formatCurrency(proposal.AWARD_FLOOR)}
+                                    {formatCurrency(item.AWARD_FLOOR)}
                                 </p>
                             </div>
                         )}
 
-                        {!isRFP && proposal.EXPECTED_NUMBER_OF_AWARDS && (
+                        {!isRFP && item.EXPECTED_NUMBER_OF_AWARDS && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Expected Number of Awards
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.EXPECTED_NUMBER_OF_AWARDS}</p>
+                                <p className="text-lg text-gray-900">{item.EXPECTED_NUMBER_OF_AWARDS}</p>
                             </div>
                         )}
 
-                        {isRFP && proposal.baseType && (
+                        {isRFP && item.baseType && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Base Type
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.baseType}</p>
+                                <p className="text-lg text-gray-900">{item.baseType}</p>
                             </div>
                         )}
 
-                        {isRFP && proposal.setAside && (
+                        {isRFP && item.setAside && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Set Aside
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.setAside}</p>
+                                <p className="text-lg text-gray-900">{item.setAside}</p>
                             </div>
                         )}
 
-                        {isRFP && proposal.fundingType && proposal.fundingType !== 'Not found' && (
+                        {isRFP && item.fundingType && item.fundingType !== 'Not found' && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Funding Type
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.fundingType}</p>
+                                <p className="text-lg text-gray-900">{item.fundingType}</p>
                             </div>
                         )}
 
-                        {!isRFP && proposal.FUNDING_INSTRUMENT_TYPE && (
+                        {!isRFP && item.FUNDING_INSTRUMENT_TYPE && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Funding Instrument Type
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.FUNDING_INSTRUMENT_TYPE}</p>
+                                <p className="text-lg text-gray-900">{item.FUNDING_INSTRUMENT_TYPE}</p>
                             </div>
                         )}
 
-                        {!isRFP && proposal.CATEGORY_OF_FUNDING_ACTIVITY && (
+                        {!isRFP && item.CATEGORY_OF_FUNDING_ACTIVITY && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Category of Funding Activity
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.CATEGORY_OF_FUNDING_ACTIVITY}</p>
+                                <p className="text-lg text-gray-900">{item.CATEGORY_OF_FUNDING_ACTIVITY}</p>
                             </div>
                         )}
 
-                        {!isRFP && proposal.ASSISTANCE_LISTINGS && (
+                        {!isRFP && item.ASSISTANCE_LISTINGS && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Assistance Listings
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.ASSISTANCE_LISTINGS}</p>
+                                <p className="text-lg text-gray-900">{item.ASSISTANCE_LISTINGS}</p>
                             </div>
                         )}
 
-                        {!isRFP && proposal.COST_SHARING_MATCH_REQUIRMENT && (
+                        {!isRFP && item.COST_SHARING_MATCH_REQUIRMENT && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Cost Sharing Match Requirement
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.COST_SHARING_MATCH_REQUIRMENT}</p>
+                                <p className="text-lg text-gray-900">{item.COST_SHARING_MATCH_REQUIRMENT}</p>
                             </div>
                         )}
 
-                        {!isRFP && proposal.ELIGIBLE_APPLICANTS && (
+                        {!isRFP && item.ELIGIBLE_APPLICANTS && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Eligible Applicants
                                 </label>
-                                <p className="text-lg text-gray-900">{proposal.ELIGIBLE_APPLICANTS}</p>
-                            </div>
-                        )}
-
-                        {submittedAt && (
-                            <div>
-                                <label className="block text-sm font-medium text-gray-500 mb-2">
-                                    Submission Date
-                                </label>
-                                <p className="text-lg text-gray-900">{formatDate(submittedAt)}</p>
+                                <p className="text-lg text-gray-900">{item.ELIGIBLE_APPLICANTS}</p>
                             </div>
                         )}
                     </div>
@@ -467,47 +408,47 @@ const ProposalDetails = () => {
                     )}
 
                     {/* Contact Information Section */}
-                    {(isRFP && (proposal.contact || proposal.email)) ||
-                        (!isRFP && (proposal.GRANTOR_CONTACT || proposal.GRANTOR_CONTACT_EMAIL || proposal.GRANTOR_CONTACT_PHONE)) ? (
+                    {(isRFP && (item.contact || item.email)) ||
+                        (!isRFP && (item.GRANTOR_CONTACT || item.GRANTOR_CONTACT_EMAIL || item.GRANTOR_CONTACT_PHONE)) ? (
                         <div className="mt-8 pt-6 border-t border-gray-200">
                             <h2 className="text-xl font-semibold text-gray-900 mb-4">Contact Information</h2>
                             <div className="space-y-4">
-                                {isRFP && proposal.contact && (
+                                {isRFP && item.contact && item.contact !== 'Not Provided' && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-500 mb-2">
                                             Contact
                                         </label>
                                         <div
                                             className="text-gray-900"
-                                            dangerouslySetInnerHTML={{ __html: proposal.contact }}
+                                            dangerouslySetInnerHTML={{ __html: item.contact }}
                                         />
                                     </div>
                                 )}
 
-                                {!isRFP && proposal.GRANTOR_CONTACT && (
+                                {!isRFP && item.GRANTOR_CONTACT && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-500 mb-2">
                                             Grantor Contact
                                         </label>
-                                        <p className="text-gray-900">{proposal.GRANTOR_CONTACT}</p>
+                                        <p className="text-gray-900">{item.GRANTOR_CONTACT}</p>
                                     </div>
                                 )}
 
-                                {!isRFP && proposal.GRANTOR_CONTACT_EMAIL && (
+                                {!isRFP && item.GRANTOR_CONTACT_EMAIL && item.GRANTOR_CONTACT_EMAIL !== 'Not Provided' && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-500 mb-2">
                                             Grantor Contact Email
                                         </label>
-                                        <p className="text-gray-900">{proposal.GRANTOR_CONTACT_EMAIL}</p>
+                                        <p className="text-gray-900">{item.GRANTOR_CONTACT_EMAIL}</p>
                                     </div>
                                 )}
 
-                                {!isRFP && proposal.GRANTOR_CONTACT_PHONE && (
+                                {!isRFP && item.GRANTOR_CONTACT_PHONE && item.GRANTOR_CONTACT_PHONE !== 'Not Provided' && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-500 mb-2">
                                             Grantor Contact Phone
                                         </label>
-                                        <p className="text-gray-900">{proposal.GRANTOR_CONTACT_PHONE}</p>
+                                        <p className="text-gray-900">{item.GRANTOR_CONTACT_PHONE}</p>
                                     </div>
                                 )}
                             </div>
@@ -515,25 +456,25 @@ const ProposalDetails = () => {
                     ) : null}
 
                     {/* Additional Information Section */}
-                    {(isRFP && proposal.timeline) || (!isRFP && proposal.FUNDING_CATEGORY_EXPLANATION) ? (
+                    {(isRFP && item.timeline) || (!isRFP && item.FUNDING_CATEGORY_EXPLANATION && item.FUNDING_CATEGORY_EXPLANATION !== 'Not Provided') ? (
                         <div className="mt-8 pt-6 border-t border-gray-200">
                             <h2 className="text-xl font-semibold text-gray-900 mb-4">Additional Information</h2>
                             <div className="space-y-4">
-                                {isRFP && proposal.timeline && (
+                                {isRFP && item.timeline && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-500 mb-2">
                                             Timeline
                                         </label>
-                                        <p className="text-gray-900 whitespace-pre-wrap">{proposal.timeline}</p>
+                                        <p className="text-gray-900 whitespace-pre-wrap">{item.timeline}</p>
                                     </div>
                                 )}
 
-                                {!isRFP && proposal.FUNDING_CATEGORY_EXPLANATION && proposal.FUNDING_CATEGORY_EXPLANATION !== 'Not Provided' && (
+                                {!isRFP && item.FUNDING_CATEGORY_EXPLANATION && item.FUNDING_CATEGORY_EXPLANATION !== 'Not Provided' && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-500 mb-2">
                                             Funding Category Explanation
                                         </label>
-                                        <p className="text-gray-900">{proposal.FUNDING_CATEGORY_EXPLANATION}</p>
+                                        <p className="text-gray-900">{item.FUNDING_CATEGORY_EXPLANATION}</p>
                                     </div>
                                 )}
                             </div>
@@ -541,7 +482,7 @@ const ProposalDetails = () => {
                     ) : null}
 
                     {/* External Links Section */}
-                    {(externalUrl && externalUrl !== '#') || (!isRFP && proposal.LINK_TO_ADDITIONAL_INFORMATION) ? (
+                    {(externalUrl && externalUrl !== '#') || (!isRFP && item.LINK_TO_ADDITIONAL_INFORMATION && item.LINK_TO_ADDITIONAL_INFORMATION !== 'Not Provided') ? (
                         <div className="mt-8 pt-6 border-t border-gray-200">
                             <h2 className="text-xl font-semibold text-gray-900 mb-4">External Links</h2>
                             <div className="flex flex-wrap gap-4">
@@ -555,9 +496,9 @@ const ProposalDetails = () => {
                                         <MdOutlineOpenInNew className="w-5 h-5" />
                                     </button>
                                 )}
-                                {!isRFP && proposal.LINK_TO_ADDITIONAL_INFORMATION && (
+                                {!isRFP && item.LINK_TO_ADDITIONAL_INFORMATION && item.LINK_TO_ADDITIONAL_INFORMATION !== 'Not Provided' && (
                                     <button
-                                        onClick={() => window.open(proposal.LINK_TO_ADDITIONAL_INFORMATION, '_blank', 'noopener,noreferrer')}
+                                        onClick={() => window.open(item.LINK_TO_ADDITIONAL_INFORMATION, '_blank', 'noopener,noreferrer')}
                                         className="flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] font-medium"
                                         title="Open additional information document"
                                     >
@@ -574,6 +515,5 @@ const ProposalDetails = () => {
     );
 };
 
-export default ProposalDetails;
-
+export default RFPDetails;
 

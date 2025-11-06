@@ -22,6 +22,8 @@ import { useOnboarding } from "../context/OnboardingContext";
 import GrantProposalForm from "../components/GrantProposalForm";
 import Subscription from "../components/Subscription";
 import OnboardingGuide from "../components/OnboardingGuide";
+import RFPModal from "../components/RFPModal";
+import { Country, State } from "country-state-city";
 
 // Constants
 const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/rfp`;
@@ -30,6 +32,229 @@ const STATUS_STYLES = {
   Submitted: "bg-green-100 text-green-600",
   Rejected: "bg-red-100 text-red-600",
   Won: "bg-yellow-100 text-yellow-600",
+};
+
+// Country MultiSelect Component
+const CountryMultiSelect = ({ selectedCountries, onCountryChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const containerRef = React.useRef(null);
+  const countries = Country.getAllCountries();
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredCountries = countries.filter(country =>
+    country.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleToggleCountry = (countryCode) => {
+    if (selectedCountries.includes(countryCode)) {
+      onCountryChange(selectedCountries.filter(c => c !== countryCode));
+    } else {
+      onCountryChange([...selectedCountries, countryCode]);
+    }
+  };
+
+  const handleRemoveCountry = (countryCode) => {
+    onCountryChange(selectedCountries.filter(c => c !== countryCode));
+  };
+
+  const getCountryName = (countryCode) => {
+    const country = countries.find(c => c.isoCode === countryCode);
+    return country ? country.name : countryCode;
+  };
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <div className="flex flex-wrap gap-2 mb-2">
+        {selectedCountries.map((countryCode) => (
+          <span
+            key={countryCode}
+            className="inline-flex items-center gap-1 px-2 py-1 bg-[#2563EB] text-white text-xs rounded-full"
+          >
+            {getCountryName(countryCode)}
+            <button
+              onClick={() => handleRemoveCountry(countryCode)}
+              className="ml-1 hover:text-red-200"
+              aria-label={`Remove ${getCountryName(countryCode)}`}
+              title={`Remove ${getCountryName(countryCode)}`}
+            >
+              <MdOutlineClose className="w-3 h-3 shrink-0" />
+            </button>
+          </span>
+        ))}
+      </div>
+
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3 py-2 border border-[#E5E7EB] rounded-md bg-white text-left hover:border-[#2563EB] focus:outline-none focus:ring-[2px] focus:ring-[#2563EB]"
+      >
+        <span className={selectedCountries.length > 0 ? "text-[#111827]" : "text-[#9CA3AF]"}>
+          {selectedCountries.length > 0
+            ? `${selectedCountries.length} countr${selectedCountries.length > 1 ? 'ies' : 'y'} selected`
+            : "Select countries..."
+          }
+        </span>
+        <MdOutlineExpandMore className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''} shrink-0`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg max-h-60 overflow-y-auto">
+          <div className="p-2 border-b">
+            <input
+              type="text"
+              placeholder="Search countries..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-2 py-1 border border-[#E5E7EB] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {filteredCountries.map((country) => (
+              <div
+                key={country.isoCode}
+                onClick={() => handleToggleCountry(country.isoCode)}
+                className="flex items-center justify-between px-3 py-2 hover:bg-[#F3F4F6] cursor-pointer"
+              >
+                <span className="text-sm text-[#111827]">{country.name}</span>
+                {selectedCountries.includes(country.isoCode) && (
+                  <MdOutlineCheck className="w-4 h-4 text-[#2563EB] shrink-0" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// State MultiSelect Component
+const StateMultiSelect = ({ selectedStates, onStateChange, selectedCountries }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const containerRef = React.useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Get states for all selected countries
+  const allStates = useMemo(() => {
+    if (selectedCountries.length === 0) {
+      return State.getAllStates();
+    }
+    const states = [];
+    selectedCountries.forEach(countryCode => {
+      const countryStates = State.getStatesOfCountry(countryCode);
+      states.push(...countryStates);
+    });
+    return states;
+  }, [selectedCountries]);
+
+  const filteredStates = allStates.filter(state =>
+    state.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleToggleState = (stateCode) => {
+    if (selectedStates.includes(stateCode)) {
+      onStateChange(selectedStates.filter(s => s !== stateCode));
+    } else {
+      onStateChange([...selectedStates, stateCode]);
+    }
+  };
+
+  const handleRemoveState = (stateCode) => {
+    onStateChange(selectedStates.filter(s => s !== stateCode));
+  };
+
+  const getStateName = (stateCode) => {
+    const state = allStates.find(s => s.isoCode === stateCode);
+    return state ? state.name : stateCode;
+  };
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <div className="flex flex-wrap gap-2 mb-2">
+        {selectedStates.map((stateCode) => (
+          <span
+            key={stateCode}
+            className="inline-flex items-center gap-1 px-2 py-1 bg-[#2563EB] text-white text-xs rounded-full"
+          >
+            {getStateName(stateCode)}
+            <button
+              onClick={() => handleRemoveState(stateCode)}
+              className="ml-1 hover:text-red-200"
+              aria-label={`Remove ${getStateName(stateCode)}`}
+              title={`Remove ${getStateName(stateCode)}`}
+            >
+              <MdOutlineClose className="w-3 h-3 shrink-0" />
+            </button>
+          </span>
+        ))}
+      </div>
+
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={selectedCountries.length === 0 && allStates.length === 0}
+        className="w-full flex items-center justify-between px-3 py-2 border border-[#E5E7EB] rounded-md bg-white text-left hover:border-[#2563EB] focus:outline-none focus:ring-[2px] focus:ring-[#2563EB] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <span className={selectedStates.length > 0 ? "text-[#111827]" : "text-[#9CA3AF]"}>
+          {selectedStates.length > 0
+            ? `${selectedStates.length} state${selectedStates.length > 1 ? 's' : ''} selected`
+            : "Select states..."
+          }
+        </span>
+        <MdOutlineExpandMore className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''} shrink-0`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg max-h-60 overflow-y-auto">
+          <div className="p-2 border-b">
+            <input
+              type="text"
+              placeholder="Search states..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-2 py-1 border border-[#E5E7EB] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {filteredStates.length > 0 ? (
+              filteredStates.map((state) => (
+                <div
+                  key={state.isoCode}
+                  onClick={() => handleToggleState(state.isoCode)}
+                  className="flex items-center justify-between px-3 py-2 hover:bg-[#F3F4F6] cursor-pointer"
+                >
+                  <span className="text-sm text-[#111827]">{state.name}</span>
+                  {selectedStates.includes(state.isoCode) && (
+                    <MdOutlineCheck className="w-4 h-4 text-[#2563EB] shrink-0" />
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="px-3 py-2 text-sm text-[#6B7280]">No states available</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 // Sidebar Component
@@ -49,6 +274,28 @@ const LeftSidebar = ({ isOpen, onClose, filters, setFilters }) => {
     });
   };
 
+  const handleCountryChange = (countries) => {
+    setFilters((prev) => ({
+      ...prev,
+      country: countries,
+      // Clear states when countries change if the states are no longer valid
+      state: prev.state?.filter(stateCode => {
+        if (countries.length === 0) return true;
+        return countries.some(countryCode => {
+          const states = State.getStatesOfCountry(countryCode);
+          return states.some(s => s.isoCode === stateCode);
+        });
+      }) || []
+    }));
+  };
+
+  const handleStateChange = (states) => {
+    setFilters((prev) => ({
+      ...prev,
+      state: states
+    }));
+  };
+
   const content = (
     <div className="p-4 w-64 bg-white h-full overflow-y-auto border-r">
       <div className="flex justify-between items-center mb-4">
@@ -61,6 +308,25 @@ const LeftSidebar = ({ isOpen, onClose, filters, setFilters }) => {
         >
           <MdOutlineClose className="w-6 h-6 text-[#4B5563] hover:text-[#111827] shrink-0" />
         </button>
+      </div>
+
+      {/* Country Filter */}
+      <div className="mb-4">
+        <h3 className="text-[16px] font-medium text-[#111827] mb-2">Country</h3>
+        <CountryMultiSelect
+          selectedCountries={filters.country || []}
+          onCountryChange={handleCountryChange}
+        />
+      </div>
+
+      {/* State Filter */}
+      <div className="mb-4">
+        <h3 className="text-[16px] font-medium text-[#111827] mb-2">State</h3>
+        <StateMultiSelect
+          selectedStates={filters.state || []}
+          onStateChange={handleStateChange}
+          selectedCountries={filters.country || []}
+        />
       </div>
 
       {Object.entries(categories).map(([category, values]) => (
@@ -86,7 +352,7 @@ const LeftSidebar = ({ isOpen, onClose, filters, setFilters }) => {
   );
 
   return (
-    <div className="fixed top-16 left-0 h-[calc(100vh-4rem)] z-40">
+    <div className="fixed top-20 left-0 h-[calc(100vh-4rem)] z-40">
       {isOpen && content}
     </div>
   );
@@ -371,6 +637,19 @@ const IndustryMultiSelect = ({ selectedIndustries, onIndustryChange, industries 
   );
 };
 
+// PropTypes for CountryMultiSelect
+CountryMultiSelect.propTypes = {
+  selectedCountries: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onCountryChange: PropTypes.func.isRequired,
+};
+
+// PropTypes for StateMultiSelect
+StateMultiSelect.propTypes = {
+  selectedStates: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onStateChange: PropTypes.func.isRequired,
+  selectedCountries: PropTypes.arrayOf(PropTypes.string).isRequired,
+};
+
 // PropTypes for IndustryMultiSelect
 IndustryMultiSelect.propTypes = {
   selectedIndustries: PropTypes.arrayOf(PropTypes.string).isRequired,
@@ -556,7 +835,7 @@ const SavedGrantCardPropTypes = {
 
 // Main Component
 const Discover = () => {
-  const [filters, setFilters] = useState({ category: [], deadline: [] });
+  const [filters, setFilters] = useState({ category: [], deadline: [], country: [], state: [] });
   const [recommended, setRecommended] = useState([]);
   const [otherRFPs, setOtherRFPs] = useState([]);
   const [saved, setSaved] = useState([]);
@@ -644,6 +923,24 @@ const Discover = () => {
   const [selectedGrant, setSelectedGrant] = useState(null);
   const [isGeneratingGrantProposal, setIsGeneratingGrantProposal] = useState(false);
 
+  // RFP/Grant details modal state
+  const [isRFPModalOpen, setIsRFPModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [modalType, setModalType] = useState('rfp');
+
+  // Handler to open modal
+  const handleOpenModal = (item, type) => {
+    setSelectedItem(item);
+    setModalType(type);
+    setIsRFPModalOpen(true);
+  };
+
+  // Handler to close modal
+  const handleCloseModal = () => {
+    setIsRFPModalOpen(false);
+    setSelectedItem(null);
+  };
+
 
   // Pagination state variables
   const [itemsPerPage] = useState(6); // 6 items per page for cards
@@ -696,7 +993,7 @@ const Discover = () => {
 
     // Reset filters when switching tabs
     if (tab === "rfp") {
-      setFilters({ category: [], deadline: [] });
+      setFilters({ category: [], deadline: [], country: [], state: [] });
     } else if (tab === "grants") {
       setGrantFilters({
         fundingInstrumentType: [],
@@ -1165,6 +1462,81 @@ const Discover = () => {
           }
         });
         if (!hasMatchingDeadline) return false;
+      }
+
+      // Handle country filtering
+      if (filters.country && filters.country.length > 0) {
+        // Check for country in various possible field names
+        const rfpCountry = rfp.country || rfp.countryCode || rfp.Country || rfp.COUNTRY || rfp.location?.country || rfp.location?.countryCode;
+
+        if (rfpCountry) {
+          // Try to match by ISO code first, then by name
+          const countryMatch = filters.country.some(selectedCountryCode => {
+            // Direct ISO code match
+            if (rfpCountry === selectedCountryCode || rfpCountry.toUpperCase() === selectedCountryCode.toUpperCase()) {
+              return true;
+            }
+            // Try to find country by name and match ISO codes
+            const selectedCountry = Country.getAllCountries().find(c => c.isoCode === selectedCountryCode);
+            if (selectedCountry) {
+              // Check if RFP country matches the selected country name or ISO code
+              const rfpCountryObj = Country.getAllCountries().find(c =>
+                c.isoCode === rfpCountry ||
+                c.isoCode === rfpCountry.toUpperCase() ||
+                c.name.toLowerCase() === rfpCountry.toLowerCase()
+              );
+              if (rfpCountryObj && rfpCountryObj.isoCode === selectedCountryCode) {
+                return true;
+              }
+            }
+            return false;
+          });
+          if (!countryMatch) return false;
+        } else {
+          // If RFP doesn't have country info and filters are set, exclude it (strict approach)
+          return false;
+        }
+      }
+
+      // Handle state filtering
+      if (filters.state && filters.state.length > 0) {
+        // Check for state in various possible field names
+        const rfpState = rfp.state || rfp.stateCode || rfp.State || rfp.STATE || rfp.location?.state || rfp.location?.stateCode;
+
+        if (rfpState) {
+          // Try to match by ISO code first, then by name
+          const stateMatch = filters.state.some(selectedStateCode => {
+            // Direct ISO code match
+            if (rfpState === selectedStateCode || rfpState.toUpperCase() === selectedStateCode.toUpperCase()) {
+              return true;
+            }
+            // Try to find state by name and match ISO codes
+            // Get states from selected countries
+            const allStatesFromSelectedCountries = [];
+            (filters.country || []).forEach(countryCode => {
+              const states = State.getStatesOfCountry(countryCode);
+              allStatesFromSelectedCountries.push(...states);
+            });
+            // If no countries selected, check all states
+            const statesToCheck = allStatesFromSelectedCountries.length > 0
+              ? allStatesFromSelectedCountries
+              : State.getAllStates();
+
+            const rfpStateObj = statesToCheck.find(s =>
+              s.isoCode === rfpState ||
+              s.isoCode === rfpState.toUpperCase() ||
+              s.name.toLowerCase() === rfpState.toLowerCase()
+            );
+            if (rfpStateObj && rfpStateObj.isoCode === selectedStateCode) {
+              return true;
+            }
+            return false;
+          });
+          if (!stateMatch) return false;
+        } else {
+          // If RFP doesn't have state info and filters are set, exclude it (strict approach)
+          return false;
+        }
       }
 
       return true;
@@ -1668,13 +2040,16 @@ const Discover = () => {
               {rfp.generated ? "In Progress" : "Generate"}
             </button>
 
-            <a href={rfp.link}
-              className="text-[14px] text-white bg-[#2563EB] px-2 py-1 rounded-md"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                handleOpenModal(rfp, 'rfp');
+              }}
+              className="text-[14px] text-white bg-[#2563EB] px-2 py-1 rounded-md hover:bg-[#1d4ed8] transition-colors"
+              title="View RFP details"
             >
               View
-            </a>
+            </button>
           </div>
         </div>
       </div>
@@ -1728,15 +2103,16 @@ const Discover = () => {
       {/* Footer */}
       <div className="flex justify-between items-center">
         {/* <span className="font-semibold text-[#2563EB] shrink-0">{rfp.budget === "Not found" ? "Not Disclosed" : rfp.budget || "Not Disclosed"}</span> */}
-        <a
-          href={rfp.link}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            handleOpenModal(rfp, 'rfp');
+          }}
           className="text-[14px] text-[#2563EB] hover:underline transition-colors"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="View full RFP details in a new tab"
+          title="View RFP details"
         >
           View Details
-        </a>
+        </button>
 
         <button
           onClick={() => handleGenerateProposal(rfp)}
@@ -1875,15 +2251,16 @@ const Discover = () => {
           >
             {grant.generated ? "In Progress" : "Generate"}
           </button>
-          <a
-            href={grant.OPPORTUNITY_NUMBER_LINK}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              handleOpenModal(grant, 'grant');
+            }}
             className="text-[14px] text-white bg-[#2563EB] px-2 py-1 rounded-md hover:bg-[#1d4ed8] transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="View grant details on external website"
+            title="View grant details"
           >
             View
-          </a>
+          </button>
         </div>
       </div>
     </div>
@@ -2356,7 +2733,7 @@ const Discover = () => {
 
   // Clear all filters function
   const clearAllFilters = () => {
-    setFilters({ category: [], deadline: [] });
+    setFilters({ category: [], deadline: [], country: [], state: [] });
     setGrantFilters({
       fundingInstrumentType: [],
       expectedNumberOfAwards: [],
@@ -2456,8 +2833,8 @@ const Discover = () => {
           {/* Search Bar Section */}
           <div ref={setDiscoverHeaderRef} className="flex  justify-center mx-auto text-lg space-x-6 border-b border-gray-200 p-4">
             <button
-              className={`pb-2 px-6 rounded-t-lg transition-all duration-200 focus:outline-none shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] ${activeTab === "rfp"
-                ? "text-[#2563EB] font-bold border-b-2 border-[#2563EB] bg-[#E5E7EB] shadow"
+              className={`pb-2 px-6 rounded-t-lg transition-all duration-200 focus:outline-none hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] ${activeTab === "rfp"
+                ? "text-[#2563EB] font-bold border-b-2 border-[#2563EB] bg-[#E5E7EB]"
                 : "font-bold text-[#4B5563] hover:text-[#2563EB] hover:bg-[#E5E7EB]"
                 }`}
               onClick={() => handleTabChange("rfp")}
@@ -2467,8 +2844,8 @@ const Discover = () => {
             </button>
 
             <button
-              className={`pb-2 px-6 rounded-t-lg transition-all duration-200 focus:outline-none shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] ${activeTab === "grants"
-                ? "text-[#2563EB] font-bold border-b-2 border-[#2563EB] bg-[#E5E7EB] shadow"
+              className={`pb-2 px-6 rounded-t-lg transition-all duration-200 focus:outline-none hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] ${activeTab === "grants"
+                ? "text-[#2563EB] font-bold border-b-2 border-[#2563EB] bg-[#E5E7EB]"
                 : "font-bold text-[#4B5563] hover:text-[#2563EB] hover:bg-[#E5E7EB]"
                 }`}
               onClick={() => handleTabChange("grants")}
@@ -2968,6 +3345,14 @@ const Discover = () => {
           onClose={() => setShowGrantProposalModal(false)}
           onSubmit={handleSubmitGrantProposal}
           isGenerating={isGeneratingGrantProposal}
+        />
+
+        {/* RFP/Grant Details Modal */}
+        <RFPModal
+          item={selectedItem}
+          type={modalType}
+          isOpen={isRFPModalOpen}
+          onClose={handleCloseModal}
         />
 
       </div>
