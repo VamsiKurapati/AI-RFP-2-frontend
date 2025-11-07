@@ -34,6 +34,14 @@ const STATUS_STYLES = {
   Won: "bg-yellow-100 text-yellow-600",
 };
 
+const formatDate = (dateString) => {
+  if (!dateString) return "Not Disclosed";
+  try {
+    return new Date(dateString).toLocaleDateString();
+  } catch {
+    return "Not Disclosed";
+  }
+};
 // Country MultiSelect Component
 const CountryMultiSelect = ({ selectedCountries, onCountryChange }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -155,14 +163,16 @@ const StateMultiSelect = ({ selectedStates, onStateChange, selectedCountries }) 
 
   // Get states for all selected countries
   const allStates = useMemo(() => {
-    if (selectedCountries.length === 0) {
-      return State.getAllStates();
+    if (!selectedCountries || selectedCountries.length === 0) {
+      return [];
     }
+
     const states = [];
-    selectedCountries.forEach(countryCode => {
+    selectedCountries.forEach((countryCode) => {
       const countryStates = State.getStatesOfCountry(countryCode);
       states.push(...countryStates);
     });
+
     return states;
   }, [selectedCountries]);
 
@@ -210,7 +220,7 @@ const StateMultiSelect = ({ selectedStates, onStateChange, selectedCountries }) 
 
       <button
         onClick={() => setIsOpen(!isOpen)}
-        disabled={selectedCountries.length === 0 && allStates.length === 0}
+        disabled={allStates.length === 0}
         className="w-full flex items-center justify-between px-3 py-2 border border-[#E5E7EB] rounded-md bg-white text-left hover:border-[#2563EB] focus:outline-none focus:ring-[2px] focus:ring-[#2563EB] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <span className={selectedStates.length > 0 ? "text-[#111827]" : "text-[#9CA3AF]"}>
@@ -260,7 +270,7 @@ const StateMultiSelect = ({ selectedStates, onStateChange, selectedCountries }) 
 // Sidebar Component
 const LeftSidebar = ({ isOpen, onClose, filters, setFilters }) => {
   const categories = {
-    category: ["Combined Synopsis/Solicitation", "Solicitation", "Presolicitation", "Sources Sought", "Special Notice", "Consolidate/(Substantially) Bundle"],
+    // category: ["Combined Synopsis/Solicitation", "Solicitation", "Presolicitation", "Sources Sought", "Special Notice", "Consolidate/(Substantially) Bundle"],
     deadline: ["Next 7 Days", "Next 30 Days", "Next 60 Days", "Next 90 Days", "Next 180 Days", "Not Disclosed"],
   };
 
@@ -275,18 +285,28 @@ const LeftSidebar = ({ isOpen, onClose, filters, setFilters }) => {
   };
 
   const handleCountryChange = (countries) => {
-    setFilters((prev) => ({
-      ...prev,
-      country: countries,
-      // Clear states when countries change if the states are no longer valid
-      state: prev.state?.filter(stateCode => {
-        if (countries.length === 0) return true;
-        return countries.some(countryCode => {
+    setFilters((prev) => {
+      if (!countries || countries.length === 0) {
+        return {
+          ...prev,
+          country: [],
+          state: null,
+        };
+      }
+
+      const validatedStates = (prev.state || []).filter((stateCode) =>
+        countries.some((countryCode) => {
           const states = State.getStatesOfCountry(countryCode);
-          return states.some(s => s.isoCode === stateCode);
-        });
-      }) || []
-    }));
+          return states.some((s) => s.isoCode === stateCode);
+        })
+      );
+
+      return {
+        ...prev,
+        country: countries,
+        state: validatedStates,
+      };
+    });
   };
 
   const handleStateChange = (states) => {
@@ -312,21 +332,24 @@ const LeftSidebar = ({ isOpen, onClose, filters, setFilters }) => {
 
       {/* Country Filter */}
       <div className="mb-4">
-        <h3 className="text-[16px] font-medium text-[#111827] mb-2">Country</h3>
-        <CountryMultiSelect
-          selectedCountries={filters.country || []}
-          onCountryChange={handleCountryChange}
-        />
-      </div>
+        <h3 className="text-[16px] font-medium text-[#111827]">Region</h3>
+        <div className="mt-2">
+          <CountryMultiSelect
+            selectedCountries={filters.country || []}
+            onCountryChange={handleCountryChange}
+          />
+        </div>
 
-      {/* State Filter */}
-      <div className="mb-4">
-        <h3 className="text-[16px] font-medium text-[#111827] mb-2">State</h3>
-        <StateMultiSelect
-          selectedStates={filters.state || []}
-          onStateChange={handleStateChange}
-          selectedCountries={filters.country || []}
-        />
+        {/* State Filter */}
+        {(filters.country?.length ?? 0) > 0 && (
+          <div className="mt-2">
+            <StateMultiSelect
+              selectedStates={Array.isArray(filters.state) ? filters.state : []}
+              onStateChange={handleStateChange}
+              selectedCountries={filters.country || []}
+            />
+          </div>
+        )}
       </div>
 
       {Object.entries(categories).map(([category, values]) => (
@@ -503,22 +526,11 @@ const GrantsFilterSidebar = ({ isOpen, onClose, grantFilters, setGrantFilters })
           </div>
         ))}
       </div>
-
-      {/* Reset Button */}
-      <div className="mt-6">
-        <button
-          onClick={resetFilters}
-          className="w-full px-4 py-2 bg-[#EF4444] text-white rounded-md hover:bg-[#DC2626] transition-colors shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
-          title="Reset all grant filters to default"
-        >
-          Reset Filters
-        </button>
-      </div>
     </div>
   );
 
   return (
-    <div className="fixed top-16 left-0 h-[calc(100vh-4rem)] z-40">
+    <div className="fixed top-20 left-0 h-[calc(100vh-4rem)] z-40">
       {isOpen && content}
     </div>
   );
@@ -1008,47 +1020,92 @@ const Discover = () => {
 
   // Set available industries  and grants statically
   useEffect(() => {
-    // setAvailableIndustries([
-    //   "Information Technology",
-    //   "Healthcare",
-    //   "Finance",
-    //   "Education",
-    //   "Manufacturing",
-    //   "Retail",
-    //   "Construction",
-    //   "Consulting",
-    //   "Marketing",
-    //   "Legal",
-    //   "Real Estate",
-    //   "Transportation",
-    //   "Hospitality",
-    //   "Government",
-    //   "Non-Profit",
-    //   "Research & Development",
-    // ]);
-
     setAvailableIndustries([
-      "Open To All",
-      "Total Small Business Set-Aside (FAR 19.5)",
-      "No Set aside used",
-      "Service-Disabled Veteran-Owned Small Business Set Aside",
-      "8a Competed",
-      "Women-Owned Small Business",
-      "HUBZone Set Aside",
-      "Indian Small Business Economic Enterprise (ISBEE) Set-Aside (specific to Department of Interior and Indian Health Services)",
-      "Partial Small Business Set-Aside (FAR 19.5)",
-      "8(a) Sole Source",
-      "Veteran Set Aside",
-      "SDVOSB Sole Source",
-      "Buy Indian Set-Aside (specific to Department of Health and Human Services, Indian Health Services)",
-      "Indian Economic Enterprise (IEE) Set-Aside (specific to Department of Interior and Indian Health Services)",
-      "SBA Certified Economically Disadvantaged WOSB (EDWOSB) Program Set-Aside (FAR 19.15)",
-      "Local Area Set-Aside (FAR 26.2)",
-      "Women-Owned Small Business Sole Source",
-      "HUBZone Sole Source",
-      "SBA Certified Economically Disadvantaged WOSB (EDWOSB) Program Sole Source (FAR 19.15)",
-      "Veteran Sole Source",
-      "Emerging Small Business"
+      "All Categories",
+      "Web Design and Development",
+      "Mobile Application Development",
+      "Call Center and Answering",
+      "Data Entry, Scanning, Records and Document Related Services",
+      "Medical Transcription and Others",
+      "Artificial Intelligence and Machine Learning",
+      "Document Printing and Mailing, Books, Maps, Ballot Papers, or Other Publications",
+      "Software, System and Application",
+      "Medical Billing and Coding",
+      "Translation and Interpretation",
+      "Court Reporting",
+      "CAD/CAM Drafting",
+      "Graphics and Animation",
+      "Auditing, Finance and Accounting",
+      "Social Media, Internet Marketing and SEO",
+      "Billing Services",
+      "Global, Remote, Offshore",
+      "Marketing and Branding",
+      "Writing Services",
+      "HR Services",
+      "Recycling Services",
+      "Asset Management",
+      "Destruction Services",
+      "GIS Services",
+      "CCTV and Security Services and Supplies",
+      "Networking Services and Supplies",
+      "Debt Collection Services",
+      "Computer Supplies, Accessories and other Equipments",
+      "Medical and Surgical Supplies",
+      "Medical Services",
+      "Legal Services",
+      "Electron Microscope",
+      "Professional, Consulting, Administrative or Management Support Services",
+      "Case Management Services",
+      "Records Storage Services",
+      "IT Services (Computer Maintenance and Technical Services)",
+      "Data Research and Analytics",
+      "Staffing Services",
+      "Live Animals, Poultry, Food, Beverage, Catering Services and Supplies, Vending Machines",
+      "Transportation Services",
+      "Rental Services",
+      "Cleaning, Janitorial and Custodial Services and Supplies",
+      "Stationery, Office Supplies, Machines, Components, Accessories, Equipments or Related Services",
+      "Real Estate, Brokerage Services, Maintenance, Repair and Alteration of Property",
+      "Waste Disposal Services",
+      "Health and Related Services",
+      "Painting Services and Supplies",
+      "Banking Services",
+      "Plumbing Services and Supplies",
+      "Pharmaceutical, Pharmacy & Related Services",
+      "Weapons, Nuclear Ordnance, Ammunition, Explosives or Guided Missiles",
+      "Plane and Aircraft Services, Supplies, Components, Accessories or Related Equipments",
+      "Railway Services and Supplies, Components, Accessories or Related Equipments",
+      "Space Vehicle Services, Supplies, Components, Accessories or Related Equipments",
+      "Ship and Marine Services, Supplies, Components, Accessories or Related Equipments",
+      "Ground Vehicles Services, Supplies, Components, Accessories or Related Equipments",
+      "Other Vehicles Services, Supplies, Components, Accessories or Related Equipments",
+      "Other Special Industry Machinery, Components, Accessories or Related Equipments",
+      "Fire Control, Firefighting, Rescue Safety Services, Supplies, Components, Accessories or Related Equipments",
+      "Farming and Agricultural Services, Supplies, Components, Accessories or Related Equipments",
+      "Electrical and Electronic Services, Supplies, Components, Accessories or Related Equipments",
+      "Wooden and Other Furniture Services, Supplies, Components, Accessories or Related Equipments",
+      "Service and Trade Equipments",
+      "Water Purification and Sewage Services, Supplies, Components, Accessories or Related Equipments",
+      "Telecommunication Services, Supplies, Components, Accessories or Related Equipments",
+      "Air-conditioning, Refrigeration Services, Supplies, Components, Accessories or Related Equipments",
+      "Music, Movies, Photographic Services, Supplies, Components, Accessories or Related Equipments",
+      "Ores, Mines, Minerals and Their Primary Products or Services",
+      "Natural Resources and Conservation Services",
+      "Non-Metallic Fabricated Materials, Crude Materials, Metal Bars, Sheets and Shapes Supplies",
+      "Social Services",
+      "Quality control, Testing & Inspection services",
+      "Clothing, Textiles, Leather, Furs, Apparel, Shoe, Tents, Flags Supplies",
+      "Fuels, Lubricants, Oils, Waxes Supplies, Components, Accessories or Related Equipments",
+      "Utilities and Housekeeping Services",
+      "Subsistence, Education or Training Supplies and Services",
+      "Sports, Recreational, Athletic Supplies, Components, Accessories, Equipments, or Related Services",
+      "Toilet, Toiletries Services, Supplies, Components, Accessories or Related Equipments",
+      "Construction, Architecture, Interior Design, Landscaping and Other Related Services",
+      "Background Check, Screening or Investigation Services",
+      "Travel Agency or Support Services",
+      "Uncategorized",
+      "Insurance Services",
+      "US Federal"
     ]);
 
     setAvailableGrants([
@@ -1429,7 +1486,146 @@ const Discover = () => {
     };
   }, []);
 
+  const allCountries = useMemo(() => Country.getAllCountries(), []);
+  const allStatesList = useMemo(() => State.getAllStates(), []);
+
+  const normalizeString = useCallback((value) => {
+    if (value === null || value === undefined) return "";
+    return value
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+  }, []);
+
+  const countrySynonymMap = useMemo(
+    () => ({
+      US: ["us", "usa", "unitedstates", "unitedstatesofamerica", "america", "u.s", "u.s.a", "u.s.", "usofamerica"],
+      GB: ["gb", "uk", "u.k", "unitedkingdom", "greatbritain", "britain", "england", "scotland", "wales", "northernireland"],
+      AE: ["ae", "uae", "u.a.e", "unitedarabemirates"],
+      AU: ["au", "australia", "commonwealthofaustralia"],
+      CA: ["ca", "canada", "cda"],
+      CN: ["cn", "china", "peoplesrepublicofchina", "prc"],
+      IN: ["in", "india", "bharat"],
+      KR: ["kr", "southkorea", "republicofkorea", "rok"],
+      RU: ["ru", "russia", "russianfederation"],
+      ZA: ["za", "southafrica", "rsa"],
+    }),
+    []
+  );
+
+  const resolveCountryIsoCode = useCallback(
+    (value) => {
+      if (!value) return null;
+
+      if (typeof value === "object") {
+        const possible = value.isoCode || value.code || value.countryCode || value.name;
+        if (possible) return resolveCountryIsoCode(possible);
+        return null;
+      }
+
+      const normalized = normalizeString(value);
+      if (!normalized) return null;
+
+      const synonymEntry = Object.entries(countrySynonymMap).find(([, synonyms]) =>
+        synonyms.includes(normalized)
+      );
+      if (synonymEntry) {
+        return synonymEntry[0];
+      }
+
+      const directMatch = allCountries.find(
+        (country) =>
+          normalizeString(country.isoCode) === normalized ||
+          normalizeString(country.name) === normalized
+      );
+      if (directMatch) {
+        return directMatch.isoCode;
+      }
+
+      const containsMatch = allCountries.find((country) => {
+        const normalizedName = normalizeString(country.name);
+        return normalizedName.includes(normalized) || normalized.includes(normalizedName);
+      });
+      if (containsMatch) {
+        return containsMatch.isoCode;
+      }
+
+      return null;
+    },
+    [allCountries, countrySynonymMap, normalizeString]
+  );
+
+  const resolveStateIsoCode = useCallback(
+    (value, countryIso) => {
+      if (!value) return null;
+
+      if (typeof value === "object") {
+        const possible = value.isoCode || value.code || value.stateCode || value.name;
+        if (possible) return resolveStateIsoCode(possible, countryIso);
+        return null;
+      }
+
+      let normalized = normalizeString(value);
+      if (!normalized) return null;
+
+      const statesPool = countryIso
+        ? State.getStatesOfCountry(countryIso)
+        : allStatesList;
+
+      if (!statesPool || statesPool.length === 0) return null;
+
+      const directMatch = statesPool.find(
+        (state) =>
+          normalizeString(state.isoCode) === normalized ||
+          normalizeString(state.name) === normalized
+      );
+      if (directMatch) {
+        return directMatch.isoCode;
+      }
+
+      const containsMatch = statesPool.find((state) => {
+        const stateNameNormalized = normalizeString(state.name);
+        return (
+          stateNameNormalized.includes(normalized) ||
+          normalized.includes(stateNameNormalized)
+        );
+      });
+      if (containsMatch) {
+        return containsMatch.isoCode;
+      }
+
+      return null;
+    },
+    [allStatesList, normalizeString]
+  );
+
+  const splitLocationValue = useCallback((value) => {
+    if (!value) return [];
+
+    if (Array.isArray(value)) {
+      return value.flatMap((item) => splitLocationValue(item));
+    }
+
+    if (typeof value === "object") {
+      const possibleValues = [value.isoCode, value.code, value.countryCode, value.stateCode, value.name];
+      return possibleValues.filter(Boolean).flatMap((item) => splitLocationValue(item));
+    }
+
+    if (typeof value === "string") {
+      return value
+        .split(/[,/|;]+/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+    }
+
+    return [String(value)];
+  }, []);
+
   const applyFilters = (rfps) => {
+    const activeCountries = Array.isArray(filters.country) ? filters.country : [];
+    const activeStates = Array.isArray(filters.state) ? filters.state : [];
+
     return rfps.filter((rfp) => {
       if (
         filters.category.length &&
@@ -1464,79 +1660,76 @@ const Discover = () => {
         if (!hasMatchingDeadline) return false;
       }
 
-      // Handle country filtering
-      if (filters.country && filters.country.length > 0) {
-        // Check for country in various possible field names
-        const rfpCountry = rfp.country || rfp.countryCode || rfp.Country || rfp.COUNTRY || rfp.location?.country || rfp.location?.countryCode;
+      let resolvedCountryIsoCodes = [];
 
-        if (rfpCountry) {
-          // Try to match by ISO code first, then by name
-          const countryMatch = filters.country.some(selectedCountryCode => {
-            // Direct ISO code match
-            if (rfpCountry === selectedCountryCode || rfpCountry.toUpperCase() === selectedCountryCode.toUpperCase()) {
-              return true;
-            }
-            // Try to find country by name and match ISO codes
-            const selectedCountry = Country.getAllCountries().find(c => c.isoCode === selectedCountryCode);
-            if (selectedCountry) {
-              // Check if RFP country matches the selected country name or ISO code
-              const rfpCountryObj = Country.getAllCountries().find(c =>
-                c.isoCode === rfpCountry ||
-                c.isoCode === rfpCountry.toUpperCase() ||
-                c.name.toLowerCase() === rfpCountry.toLowerCase()
-              );
-              if (rfpCountryObj && rfpCountryObj.isoCode === selectedCountryCode) {
-                return true;
-              }
-            }
-            return false;
-          });
-          if (!countryMatch) return false;
-        } else {
-          // If RFP doesn't have country info and filters are set, exclude it (strict approach)
+      if (activeCountries.length > 0 || activeStates.length > 0) {
+        const countryCandidates = [
+          rfp.country,
+          rfp.countryCode,
+          rfp.Country,
+          rfp.COUNTRY,
+          rfp.location?.country,
+          rfp.location?.countryCode,
+          rfp.location?.Country,
+          rfp.location?.COUNTRY,
+        ];
+
+        const flattenedCountryValues = countryCandidates.flatMap((value) => splitLocationValue(value));
+        resolvedCountryIsoCodes = flattenedCountryValues
+          .map((candidate) => resolveCountryIsoCode(candidate))
+          .filter(Boolean);
+      }
+
+      // Handle country filtering
+      if (activeCountries.length > 0) {
+        if (resolvedCountryIsoCodes.length === 0) {
           return false;
         }
+
+        const countryMatch = resolvedCountryIsoCodes.some((rfpIso) =>
+          activeCountries.some(
+            (selectedCountryCode) =>
+              selectedCountryCode?.toUpperCase() === rfpIso.toUpperCase()
+          )
+        );
+
+        if (!countryMatch) return false;
       }
 
       // Handle state filtering
-      if (filters.state && filters.state.length > 0) {
-        // Check for state in various possible field names
-        const rfpState = rfp.state || rfp.stateCode || rfp.State || rfp.STATE || rfp.location?.state || rfp.location?.stateCode;
+      if (activeCountries.length > 0 && activeStates.length > 0) {
+        const stateCandidates = [
+          rfp.state,
+          rfp.stateCode,
+          rfp.State,
+          rfp.STATE,
+          rfp.location?.state,
+          rfp.location?.stateCode,
+          rfp.location?.State,
+          rfp.location?.STATE,
+        ]
+          .flatMap((value) => splitLocationValue(value))
+          .filter(Boolean);
 
-        if (rfpState) {
-          // Try to match by ISO code first, then by name
-          const stateMatch = filters.state.some(selectedStateCode => {
-            // Direct ISO code match
-            if (rfpState === selectedStateCode || rfpState.toUpperCase() === selectedStateCode.toUpperCase()) {
-              return true;
-            }
-            // Try to find state by name and match ISO codes
-            // Get states from selected countries
-            const allStatesFromSelectedCountries = [];
-            (filters.country || []).forEach(countryCode => {
-              const states = State.getStatesOfCountry(countryCode);
-              allStatesFromSelectedCountries.push(...states);
-            });
-            // If no countries selected, check all states
-            const statesToCheck = allStatesFromSelectedCountries.length > 0
-              ? allStatesFromSelectedCountries
-              : State.getAllStates();
-
-            const rfpStateObj = statesToCheck.find(s =>
-              s.isoCode === rfpState ||
-              s.isoCode === rfpState.toUpperCase() ||
-              s.name.toLowerCase() === rfpState.toLowerCase()
-            );
-            if (rfpStateObj && rfpStateObj.isoCode === selectedStateCode) {
-              return true;
-            }
-            return false;
-          });
-          if (!stateMatch) return false;
-        } else {
-          // If RFP doesn't have state info and filters are set, exclude it (strict approach)
+        if (stateCandidates.length === 0) {
           return false;
         }
+
+        const countryIsoValuesForState = resolvedCountryIsoCodes.length > 0 ? resolvedCountryIsoCodes : [null];
+
+        const stateMatch = stateCandidates.some((stateCandidate) => {
+          return countryIsoValuesForState.some((countryIso) => {
+            const resolvedStateIso = resolveStateIsoCode(stateCandidate, countryIso || undefined);
+            if (!resolvedStateIso) return false;
+
+            return activeStates.some(
+              (selectedStateCode) =>
+                selectedStateCode?.toUpperCase() === resolvedStateIso.toUpperCase()
+            );
+          });
+        });
+
+        if (!stateMatch) return false;
       }
 
       return true;
@@ -2003,7 +2196,7 @@ const Discover = () => {
             <MdOutlinePayments className="text-[16px] text-[#2563EB] shrink-0" /> {rfp.budget === "Not found" ? "Not Disclosed" : rfp.budget}
           </div>
           <div className="flex items-center gap-2">
-            <MdOutlineCalendarMonth className="text-[16px] text-[#4B5563] shrink-0" /> Deadline: {rfp.deadline || "Not Disclosed"}
+            <MdOutlineCalendarMonth className="text-[16px] text-[#4B5563] shrink-0" /> Deadline: {formatDate(rfp.deadline)}
           </div>
           <div className="flex items-center gap-2">
             <MdOutlineAccountBalance className="text-[16px] text-[#4B5563] shrink-0" />
@@ -2095,7 +2288,7 @@ const Discover = () => {
         <div className="text-[14px] text-[#6B7280] mb-4 space-y-1">
           <div className="flex items-center gap-2">
             <MdOutlineCalendarMonth className="text-[16px] shrink-0" />
-            <span>Deadline: {rfp.deadline || "Not Disclosed"}</span>
+            <span>Deadline: {formatDate(rfp.deadline)}</span>
           </div>
         </div>
       </div>
@@ -2148,7 +2341,7 @@ const Discover = () => {
         </td>
         <td className="px-4 py-3 text-left">
           <div className="text-[#4B5563] text-[14px]">
-            {rfp.deadline || "Not Disclosed"}
+            {formatDate(rfp.deadline)}
           </div>
         </td>
         <td className="px-4 py-3 text-center">
@@ -2752,7 +2945,13 @@ const Discover = () => {
 
   // Check if any RFP filters are active
   const hasActiveRFPFilters = () => {
-    return Object.values(filters).some(filterArray => filterArray.length > 0);
+    return Object.values(filters).some((filterValue) => {
+      if (Array.isArray(filterValue)) {
+        return filterValue.length > 0;
+      }
+
+      return Boolean(filterValue);
+    });
   };
 
   // Check if any filters are active (including search and industries)
@@ -2861,46 +3060,32 @@ const Discover = () => {
                 <div className="flex flex-col md:flex-row gap-4 items-center">
                   {/* Search Input with Advanced Search Button */}
                   <div className="relative flex-1 w-full md:max-w-[90%]">
-                    <div className="relative">
-                      <MdOutlineSearch className="absolute w-6 h-6 left-3 top-1/2 transform -translate-y-1/2 text-[#9CA3AF] shrink-0" title="Search" />
-                      <input
-                        type="text"
-                        placeholder={activeTab === "rfp" ? "Search RFPs By Title, Organization Or Category" : "Search Grants By Title, Agency Or Category"}
-                        className="w-full text-[18px] text-[#9CA3AF] bg-[#FFFFFF] pl-12 pr-32 py-3 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        title={activeTab === "rfp" ? "Search RFPs by title, organization, or category" : "Search Grants by title, agency, or category"}
-                      />
-                      <button
-                        className={`absolute right-2 top-1/2 px-4 py-2 rounded-xl transform -translate-y-1/2 text-[14px] transition-colors ${activeTab === "rfp"
-                          ? hasAnyActiveFilters()
-                            ? "bg-[#2563EB] text-white"
-                            : "bg-[#F3F4F6] text-[#111827] hover:bg-[#2563EB] hover:text-white"
-                          : hasActiveGrantFilters()
-                            ? "bg-[#2563EB] text-white"
-                            : "bg-[#F3F4F6] text-[#111827] hover:bg-[#2563EB] hover:text-white"
-                          }`}
-                        onClick={() => setIsSearchFocused(true)}
-                        title={activeTab === "rfp" ? (hasAnyActiveFilters() ? "Filters are currently active" : "Open advanced search filters") : (hasActiveGrantFilters() ? "Filters are currently active" : "Open grants search filters")}
-                      >
-                        {activeTab === "rfp"
-                          ? hasAnyActiveFilters() ? "Filters Active" : "Advanced Search"
-                          : hasActiveGrantFilters() ? "Filters Active" : "Grants Filters"
-                        }
-                      </button>
-                    </div>
-
-                    {/* Clear Filters Button */}
-                    {hasAnyActiveFilters() && (
-                      <button
-                        onClick={clearAllFilters}
-                        className="mt-2 px-4 py-2 text-sm text-[#EF4444] hover:text-[#DC2626] font-medium hover:underline flex items-center gap-1 transition-all duration-200"
-                        title="Clear all active filters and search"
-                      >
-                        <MdOutlineClose className="w-4 h-4 shrink-0" title="Clear All Filters" />
-                        Clear All Filters
-                      </button>
-                    )}
+                    <MdOutlineSearch className="absolute w-6 h-6 left-3 top-1/2 transform -translate-y-1/2 text-[#9CA3AF] shrink-0" title="Search" />
+                    <input
+                      type="text"
+                      placeholder={activeTab === "rfp" ? "Search RFPs By Title, Organization Or Category" : "Search Grants By Title, Agency Or Category"}
+                      className="w-full text-[18px] text-[#9CA3AF] bg-[#FFFFFF] pl-12 pr-32 py-3 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      title={activeTab === "rfp" ? "Search RFPs by title, organization, or category" : "Search Grants by title, agency, or category"}
+                    />
+                    <button
+                      className={`absolute right-2 top-1/2 px-4 py-2 rounded-xl transform -translate-y-1/2 text-[14px] transition-colors ${activeTab === "rfp"
+                        ? hasAnyActiveFilters()
+                          ? "bg-[#2563EB] text-white"
+                          : "bg-[#F3F4F6] text-[#111827] hover:bg-[#2563EB] hover:text-white"
+                        : hasActiveGrantFilters()
+                          ? "bg-[#2563EB] text-white"
+                          : "bg-[#F3F4F6] text-[#111827] hover:bg-[#2563EB] hover:text-white"
+                        }`}
+                      onClick={() => setIsSearchFocused(true)}
+                      title={activeTab === "rfp" ? (hasAnyActiveFilters() ? "Filters are currently active" : "Open advanced search filters") : (hasActiveGrantFilters() ? "Filters are currently active" : "Open grants search filters")}
+                    >
+                      {activeTab === "rfp"
+                        ? hasAnyActiveFilters() ? "Filters Active" : "Advanced Search"
+                        : hasActiveGrantFilters() ? "Filters Active" : "Grants Filters"
+                      }
+                    </button>
                   </div>
 
                   {/* Upload RFP Button */}
@@ -2915,6 +3100,18 @@ const Discover = () => {
                     </button>
                   </div>
                 </div>
+
+                {/* Clear Filters Button */}
+                {hasAnyActiveFilters() && (
+                  <button
+                    onClick={clearAllFilters}
+                    className="mt-2 px-4 py-2 text-sm text-[#EF4444] hover:text-[#DC2626] font-medium hover:underline flex items-center gap-1 transition-all duration-200"
+                    title="Clear all active filters and search"
+                  >
+                    <MdOutlineClose className="w-4 h-4 shrink-0" title="Clear All Filters" />
+                    Clear All Filters
+                  </button>
+                )}
               </div>
 
               <div ref={setDiscoverResultsRef}>
@@ -3098,46 +3295,32 @@ const Discover = () => {
                 <div className="flex flex-col md:flex-row gap-4 items-center">
                   {/* Search Input with Advanced Search Button */}
                   <div className="relative flex-1 w-full md:max-w-[90%]">
-                    <div className="relative">
-                      <MdOutlineSearch className="absolute w-6 h-6 left-3 top-1/2 transform -translate-y-1/2 text-[#9CA3AF] shrink-0" title="Search" />
-                      <input
-                        type="text"
-                        placeholder={activeTab === "rfp" ? "Search RFPs By Title, Organization Or Category" : "Search Grants By Title, Agency Or Category"}
-                        className="w-full text-[18px] text-[#9CA3AF] bg-[#FFFFFF] pl-12 pr-32 py-3 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        title={activeTab === "rfp" ? "Search RFPs by title, organization, or category" : "Search Grants by title, agency, or category"}
-                      />
-                      <button
-                        className={`absolute right-2 top-1/2 px-4 py-2 rounded-xl transform -translate-y-1/2 text-[14px] transition-colors ${activeTab === "rfp"
-                          ? hasAnyActiveFilters()
-                            ? "bg-[#2563EB] text-white"
-                            : "bg-[#F3F4F6] text-[#111827] hover:bg-[#2563EB] hover:text-white"
-                          : hasActiveGrantFilters()
-                            ? "bg-[#2563EB] text-white"
-                            : "bg-[#F3F4F6] text-[#111827] hover:bg-[#2563EB] hover:text-white"
-                          }`}
-                        onClick={() => setIsSearchFocused(true)}
-                        title={activeTab === "rfp" ? (hasAnyActiveFilters() ? "Filters are currently active" : "Open advanced search filters") : (hasActiveGrantFilters() ? "Filters are currently active" : "Open grants search filters")}
-                      >
-                        {activeTab === "rfp"
-                          ? hasAnyActiveFilters() ? "Filters Active" : "Advanced Search"
-                          : hasActiveGrantFilters() ? "Filters Active" : "Grants Filters"
-                        }
-                      </button>
-                    </div>
-
-                    {/* Clear Filters Button */}
-                    {hasAnyActiveFilters() && (
-                      <button
-                        onClick={clearAllFilters}
-                        className="mt-2 px-4 py-2 text-sm text-[#EF4444] hover:text-[#DC2626] font-medium hover:underline flex items-center gap-1 transition-all duration-200"
-                        title="Clear all active filters and search"
-                      >
-                        <MdOutlineClose className="w-4 h-4 shrink-0" title="Clear All Filters" />
-                        Clear All Filters
-                      </button>
-                    )}
+                    <MdOutlineSearch className="absolute w-6 h-6 left-3 top-1/2 transform -translate-y-1/2 text-[#9CA3AF] shrink-0" title="Search" />
+                    <input
+                      type="text"
+                      placeholder={activeTab === "rfp" ? "Search RFPs By Title, Organization Or Category" : "Search Grants By Title, Agency Or Category"}
+                      className="w-full text-[18px] text-[#9CA3AF] bg-[#FFFFFF] pl-12 pr-32 py-3 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      title={activeTab === "rfp" ? "Search RFPs by title, organization, or category" : "Search Grants by title, agency, or category"}
+                    />
+                    <button
+                      className={`absolute right-2 top-1/2 px-4 py-2 rounded-xl transform -translate-y-1/2 text-[14px] transition-colors ${activeTab === "rfp"
+                        ? hasAnyActiveFilters()
+                          ? "bg-[#2563EB] text-white"
+                          : "bg-[#F3F4F6] text-[#111827] hover:bg-[#2563EB] hover:text-white"
+                        : hasActiveGrantFilters()
+                          ? "bg-[#2563EB] text-white"
+                          : "bg-[#F3F4F6] text-[#111827] hover:bg-[#2563EB] hover:text-white"
+                        }`}
+                      onClick={() => setIsSearchFocused(true)}
+                      title={activeTab === "rfp" ? (hasAnyActiveFilters() ? "Filters are currently active" : "Open advanced search filters") : (hasActiveGrantFilters() ? "Filters are currently active" : "Open grants search filters")}
+                    >
+                      {activeTab === "rfp"
+                        ? hasAnyActiveFilters() ? "Filters Active" : "Advanced Search"
+                        : hasActiveGrantFilters() ? "Filters Active" : "Grants Filters"
+                      }
+                    </button>
                   </div>
 
                   {/* Upload Grant Button */}
@@ -3150,6 +3333,18 @@ const Discover = () => {
                     Upload Grant
                   </button>
                 </div>
+
+                {/* Clear Filters Button */}
+                {hasAnyActiveFilters() && (
+                  <button
+                    onClick={clearAllFilters}
+                    className="mt-2 px-4 py-2 text-sm text-[#EF4444] hover:text-[#DC2626] font-medium hover:underline flex items-center gap-1 transition-all duration-200"
+                    title="Clear all active filters and search"
+                  >
+                    <MdOutlineClose className="w-4 h-4 shrink-0" title="Clear All Filters" />
+                    Clear All Filters
+                  </button>
+                )}
               </div>
 
               <div className="flex justify-between items-center mb-4">

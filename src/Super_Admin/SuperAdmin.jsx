@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
     MdOutlineSearch,
+    MdOutlineAdd,
     MdOutlineNotifications,
     MdOutlinePerson,
     MdOutlineManageAccounts,
@@ -24,7 +25,8 @@ import {
     MdOutlineFileDownload,
     MdLanguage,
     MdOutlinePhone,
-    MdOutlinePermContactCalendar
+    MdOutlinePermContactCalendar,
+    MdOutlineEdit
 } from 'react-icons/md';
 import { IoLogoLinkedin } from "react-icons/io";
 import { LuCrown } from "react-icons/lu";
@@ -87,6 +89,26 @@ const SuperAdmin = () => {
     // Ref for the admin message textarea
     const adminMessageRef = useRef('');
 
+    // Plan & Subscription inner tabs
+    const [planManagementInnerTab, setPlanManagementInnerTab] = useState('plan');
+
+    // Subscription management state
+    const [subscriptionSearchTerm, setSubscriptionSearchTerm] = useState('');
+    const [subscriptionPlanFilter, setSubscriptionPlanFilter] = useState('all');
+    const [subscriptionDurationFilter, setSubscriptionDurationFilter] = useState('all');
+    const [subscriptionFilterModal, setSubscriptionFilterModal] = useState(false);
+    const [filteredSubscriptions, setFilteredSubscriptions] = useState([]);
+    const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
+    const [subscriptionModalMode, setSubscriptionModalMode] = useState('create');
+    const [subscriptionForm, setSubscriptionForm] = useState({
+        email: '',
+        planName: '',
+        duration: 'Monthly',
+        expiresAt: ''
+    });
+    const [subscriptionActionLoading, setSubscriptionActionLoading] = useState(false);
+    const [selectedSubscriptionRecord, setSelectedSubscriptionRecord] = useState(null);
+
     // Filters
     const [userStatusFilter, setUserStatusFilter] = useState('all');
     const [transactionStatusFilter, setTransactionStatusFilter] = useState('all');
@@ -119,6 +141,14 @@ const SuperAdmin = () => {
     const [completedTicketsData, setCompletedTicketsData] = useState([]);
     const [enterpriseTicketsData, setEnterpriseTicketsData] = useState([]);
     const [notificationsData, setNotificationsData] = useState([]);
+    const [subscriptionsData, setSubscriptionsData] = useState([]);
+    const [subscriptionsLoading, setSubscriptionsLoading] = useState(false);
+    const [plans, setPlans] = useState([]);
+    const [editingPlans, setEditingPlans] = useState({});
+    const [isYearlyb, setIsYearlyb] = useState(false);
+    const [isYearlyp, setIsYearlyp] = useState(false);
+    const [isYearlye, setIsYearlye] = useState(false);
+    const [isContact, setIsContact] = useState(false);
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -127,6 +157,8 @@ const SuperAdmin = () => {
     const [currentPageSupport, setCurrentPageSupport] = useState(1);
     const [currentPageEnterpriseSupport, setCurrentPageEnterpriseSupport] = useState(1);
     const [currentPageNotifications, setCurrentPageNotifications] = useState(1);
+    const [currentPageSubscriptions, setCurrentPageSubscriptions] = useState(1);
+    const [rowsPerPageSubscriptions, setRowsPerPageSubscriptions] = useState(10);
 
     const [loading, setLoading] = useState(false);
 
@@ -447,6 +479,179 @@ const SuperAdmin = () => {
         closeAllInvoiceRows();
     };
 
+    const fetchAllSubscriptions = useCallback(async () => {
+        setSubscriptionsLoading(true);
+        try {
+            const response = await axios.get(`${baseUrl}/admin/getSubscriptionsOfAllUsers`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            const list = Array.isArray(response.data) ? response.data : [];
+            setSubscriptionsData(list);
+        } catch (error) {
+            console.error('Failed to fetch subscriptions:', error);
+            toast.error(error.response?.data?.message || 'Failed to fetch subscriptions');
+            setSubscriptionsData([]);
+        } finally {
+            setSubscriptionsLoading(false);
+        }
+    }, [baseUrl]);
+
+    // Plan & Subscription helpers
+    const toTitleCase = (value = '') =>
+        value
+            .toString()
+            .split(/[^a-zA-Z0-9]+/)
+            .filter(Boolean)
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+
+    const getDurationLabel = (start, end) => {
+        if (!start || !end) return 'N/A';
+
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+
+        if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+            return 'N/A';
+        }
+
+        const diffMs = endDate.getTime() - startDate.getTime();
+        if (diffMs <= 0) return 'N/A';
+
+        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays >= 360 && diffDays <= 372) return 'Yearly';
+        if (diffDays >= 27 && diffDays <= 33) return 'Monthly';
+        if (diffDays >= 13 && diffDays <= 16) return 'Bi-Weekly';
+        if (diffDays >= 6 && diffDays <= 8) return 'Weekly';
+        if (diffDays === 1) return 'Daily';
+
+        if (diffDays % 30 === 0) {
+            const months = diffDays / 30;
+            return `${months} Month${months > 1 ? 's' : ''}`;
+        }
+
+        if (diffDays % 7 === 0) {
+            const weeks = diffDays / 7;
+            return `${weeks} Week${weeks > 1 ? 's' : ''}`;
+        }
+
+        return `${diffDays} Days`;
+    };
+
+    const formatSubscriptionExpiry = (value) => {
+        if (!value) return 'N/A';
+
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+            return formatDate(value);
+        }
+
+        if (typeof value === 'string') {
+            return toTitleCase(value);
+        }
+
+        return 'N/A';
+    };
+
+    const formatDateForInput = (value) => {
+        if (!value) return '';
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+            return typeof value === 'string' ? value : '';
+        }
+        return parsed.toISOString().slice(0, 10);
+    };
+
+    const handleSubscriptionPlanFilterChange = (value) => {
+        setSubscriptionPlanFilter(prev => (prev === value ? 'all' : value));
+        closeAllInvoiceRows();
+    };
+
+    const handleSubscriptionDurationFilterChange = (value) => {
+        setSubscriptionDurationFilter(prev => (prev === value ? 'all' : value));
+        closeAllInvoiceRows();
+    };
+
+    const resetSubscriptionFilters = () => {
+        setSubscriptionPlanFilter('all');
+        setSubscriptionDurationFilter('all');
+    };
+
+    const handleSubscriptionFormChange = (field, value) => {
+        setSubscriptionForm(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const closeSubscriptionModal = () => {
+        setSubscriptionModalOpen(false);
+        setSubscriptionActionLoading(false);
+        setSubscriptionForm({
+            email: '',
+            planName: '',
+            duration: 'Monthly',
+            expiresAt: ''
+        });
+        setSelectedSubscriptionRecord(null);
+    };
+
+    const openCreateSubscriptionModal = () => {
+        setSubscriptionModalMode('create');
+        setSubscriptionForm({
+            email: '',
+            planName: '',
+            duration: 'Monthly',
+            expiresAt: ''
+        });
+        setSelectedSubscriptionRecord(null);
+        setSubscriptionModalOpen(true);
+    };
+
+    const openEditSubscriptionModal = (record) => {
+        if (!record) return;
+        setSubscriptionModalMode('edit');
+        setSelectedSubscriptionRecord(record);
+        setSubscriptionForm({
+            email: record.email || '',
+            planName: record.planName || '',
+            duration: record.duration === 'N/A' ? 'Monthly' : record.duration,
+            expiresAt: formatDateForInput(record.expiresAtRaw || record.expiresAt)
+        });
+        setSubscriptionModalOpen(true);
+    };
+
+    const handleSubscriptionSubmit = async () => {
+        const { email, planName, duration } = subscriptionForm;
+
+        if (!email || !planName) {
+            toast.warning('Email and plan type are required');
+            return;
+        }
+
+        setSubscriptionActionLoading(true);
+        try {
+            // Placeholder for future API integration
+            toast.info('Subscription workflow will be connected once backend endpoint is available.');
+            closeSubscriptionModal();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to process subscription action');
+        } finally {
+            setSubscriptionActionLoading(false);
+        }
+    };
+
+    const handleSubscriptionReset = () => {
+        toast.info('Reset plan workflow will be connected once backend endpoint is ready.');
+    };
+
+    const handleSubscriptionDeactivate = () => {
+        toast.info('Deactivate plan workflow will be connected once backend endpoint is ready.');
+    };
+
     // Export helpers
     const exportArrayToCSV = (filename, headers, rows) => {
         const csvContent = [
@@ -494,6 +699,22 @@ const SuperAdmin = () => {
             paid_at: t.paid_at || "Not Disclosed"
         }));
         exportArrayToCSV('transactions.csv', headers, rows);
+    };
+
+    const handleExportSubscriptions = () => {
+        const headers = ['company_name', 'email', 'plan_name', 'plan_duration', 'start_date', 'renewal_date', 'expires_at', 'auto_renewal'];
+        const source = (filteredSubscriptions && filteredSubscriptions.length > 0) ? filteredSubscriptions : subscriptionRows;
+        const rows = (source || []).map(record => ({
+            company_name: record.companyName,
+            email: record.email,
+            plan_name: record.planName,
+            plan_duration: record.duration,
+            start_date: record.startDate ? formatSubscriptionExpiry(record.startDate) : 'N/A',
+            renewal_date: record.renewalDate ? formatSubscriptionExpiry(record.renewalDate) : 'N/A',
+            expires_at: record.expiresAt,
+            auto_renewal: record.autoRenewal ? 'Yes' : 'No'
+        }));
+        exportArrayToCSV('subscriptions.csv', headers, rows);
     };
 
     const handleNotificationCategoryFilter = (value) => {
@@ -974,6 +1195,106 @@ const SuperAdmin = () => {
             setFilteredSupport(filterPipeline(baseData));
         }
     }, [supportTab, supportTicketsData, completedTicketsData, enterpriseTicketsData, supportStatusFilter, supportPriorityFilter, supportTypeFilter]);
+
+    const subscriptionRows = useMemo(() => {
+        const base = Array.isArray(subscriptionsData) ? subscriptionsData : [];
+
+        return base.map(subscription => {
+            const planName = toTitleCase(subscription.plan_name || 'Unknown');
+            const duration = getDurationLabel(subscription.start_date, subscription.end_date);
+            const expiresAtRaw = subscription.end_date;
+
+            return {
+                id: subscription._id,
+                companyName: subscription.companyName || 'N/A',
+                email: subscription.userEmail || '',
+                planName,
+                duration,
+                expiresAt: formatSubscriptionExpiry(expiresAtRaw),
+                expiresAtRaw,
+                autoRenewal: subscription.auto_renewal,
+                renewalDate: subscription.renewal_date,
+                startDate: subscription.start_date,
+                planPrice: subscription.plan_price,
+                raw: subscription
+            };
+        });
+    }, [subscriptionsData]);
+
+    const subscriptionPlanOptions = useMemo(() => {
+        const set = new Set();
+        subscriptionRows.forEach(row => {
+            if (row.planName && row.planName !== 'N/A') {
+                set.add(row.planName);
+            }
+        });
+        return Array.from(set).sort();
+    }, [subscriptionRows]);
+
+    const subscriptionDurationOptions = useMemo(() => {
+        const set = new Set();
+        subscriptionRows.forEach(row => {
+            if (row.duration && row.duration !== 'N/A') {
+                set.add(row.duration);
+            }
+        });
+        return Array.from(set).sort();
+    }, [subscriptionRows]);
+
+    const availablePlanOptions = useMemo(() => {
+        const planList = Array.isArray(plans?.plans) ? plans.plans : [];
+        const planNames = planList.map(plan => plan.name).filter(Boolean);
+        const combined = new Set([...planNames, ...subscriptionPlanOptions]);
+        const values = Array.from(combined);
+        return values.length > 0 ? values : ['Basic', 'Pro', 'Enterprise'];
+    }, [plans, subscriptionPlanOptions]);
+
+    const availableDurationOptions = useMemo(() => {
+        const defaults = ['Monthly', 'Yearly'];
+        const combined = new Set([...defaults, ...subscriptionDurationOptions.filter(Boolean)]);
+        return Array.from(combined);
+    }, [subscriptionDurationOptions]);
+
+    useEffect(() => {
+        let result = subscriptionRows;
+
+        const term = (subscriptionSearchTerm || '').trim().toLowerCase();
+        if (term) {
+            result = result.filter(row =>
+                (row.companyName || '').toLowerCase().includes(term) ||
+                (row.email || '').toLowerCase().includes(term) ||
+                (row.planName || '').toLowerCase().includes(term) ||
+                (row.raw?.userName || '').toLowerCase().includes(term)
+            );
+        }
+
+        if (subscriptionPlanFilter !== 'all') {
+            result = result.filter(row => (row.planName || '').toLowerCase() === subscriptionPlanFilter.toLowerCase());
+        }
+
+        if (subscriptionDurationFilter !== 'all') {
+            result = result.filter(row => (row.duration || '').toLowerCase() === subscriptionDurationFilter.toLowerCase());
+        }
+
+        setFilteredSubscriptions(result);
+    }, [subscriptionRows, subscriptionSearchTerm, subscriptionPlanFilter, subscriptionDurationFilter]);
+
+    useEffect(() => {
+        setCurrentPageSubscriptions(1);
+    }, [subscriptionRows, subscriptionSearchTerm, subscriptionPlanFilter, subscriptionDurationFilter]);
+
+    useEffect(() => {
+        if (planManagementInnerTab !== 'subscription') {
+            setSubscriptionFilterModal(false);
+        }
+    }, [planManagementInnerTab]);
+
+    useEffect(() => {
+        if (activeTab !== 'plan-management') {
+            setPlanManagementInnerTab('plan');
+            closeSubscriptionModal();
+        }
+    }, [activeTab]);
 
     // Handle tab changes and update filtered data
     useEffect(() => {
@@ -1631,19 +1952,6 @@ const SuperAdmin = () => {
             </div>
         </div>
     );
-
-
-
-
-
-    const [plans, setPlans] = useState([]);
-    const [editingPlans, setEditingPlans] = useState({});
-    const [isYearlyb, setIsYearlyb] = useState(false);
-    const [isYearlyp, setIsYearlyp] = useState(false);
-    const [isYearlye, setIsYearlye] = useState(false);
-    const [isContact, setIsContact] = useState(false);
-
-
     const subPlan = async () => {
         try {
             const data = await axios.get(`${baseUrl}/admin/getSubscriptionPlansData`, {
@@ -1672,6 +1980,10 @@ const SuperAdmin = () => {
     useEffect(() => {
         subPlan();
     }, []);
+
+    useEffect(() => {
+        fetchAllSubscriptions();
+    }, [fetchAllSubscriptions]);
 
 
     const startEdit = (plan) => {
@@ -2386,7 +2698,235 @@ const SuperAdmin = () => {
 
 
 
-    const renderPlanManagement = () => (
+    const renderSubscriptionManagement = () => {
+        const source = filteredSubscriptions || [];
+        const paginatedSubscriptions = paginateData(source, currentPageSubscriptions, rowsPerPageSubscriptions);
+
+        return (
+            <div className="h-full">
+                <div className="mt-10 space-y-6">
+                    <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6">
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <div className="flex flex-col lg:flex-row lg:items-center gap-4 w-full">
+                                <div className="relative flex-1 max-w-xl">
+                                    <MdOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9CA3AF] w-5 h-5" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search by company or email..."
+                                        value={subscriptionSearchTerm}
+                                        onChange={(e) => {
+                                            setSubscriptionSearchTerm(e.target.value);
+                                            closeAllInvoiceRows();
+                                        }}
+                                        className="pl-10 pr-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#6C63FF] focus:border-transparent w-full text-[#374151] placeholder-[#9CA3AF] bg-white"
+                                        title="Search subscriptions"
+                                    />
+                                </div>
+
+                                <div className="relative">
+                                    <button
+                                        className="bg-white flex items-center justify-center space-x-2 px-4 py-2 border border-[#E5E7EB] rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+                                        onClick={() => setSubscriptionFilterModal(prev => !prev)}
+                                        title="Filter subscriptions"
+                                    >
+                                        <MdOutlineFilterList className="w-5 h-5" />
+                                        <span className="text-[16px] text-[#9CA3AF]">Filter</span>
+                                    </button>
+
+                                    {subscriptionFilterModal && (
+                                        <div className="absolute top-12 right-0 w-72 bg-white rounded-lg shadow-lg p-4 flex flex-col gap-4 z-[1000] border border-[#E5E7EB]">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[14px] font-medium text-[#111827]">Filters</span>
+                                                <button
+                                                    className="text-[12px] text-[#2563EB] hover:underline"
+                                                    onClick={() => {
+                                                        resetSubscriptionFilters();
+                                                        setSubscriptionFilterModal(false);
+                                                    }}
+                                                >
+                                                    Clear All
+                                                </button>
+                                            </div>
+
+                                            <div>
+                                                <span className="text-[14px] font-medium text-[#4B5563]">Plan Type</span>
+                                                <div className="mt-2 space-y-1">
+                                                    <label className="flex items-center space-x-2 text-sm text-[#4B5563] hover:bg-gray-50 p-2 rounded cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name="subscriptionPlanFilter"
+                                                            value="all"
+                                                            checked={subscriptionPlanFilter === 'all'}
+                                                            onChange={() => setSubscriptionPlanFilter('all')}
+                                                        />
+                                                        <span>All</span>
+                                                    </label>
+                                                    {subscriptionPlanOptions.length > 0 ? (
+                                                        subscriptionPlanOptions.map(option => (
+                                                            <label
+                                                                key={option}
+                                                                className="flex items-center space-x-2 text-sm text-[#4B5563] hover:bg-gray-50 p-2 rounded cursor-pointer"
+                                                            >
+                                                                <input
+                                                                    type="radio"
+                                                                    name="subscriptionPlanFilter"
+                                                                    value={option}
+                                                                    checked={subscriptionPlanFilter === option}
+                                                                    onChange={() => handleSubscriptionPlanFilterChange(option)}
+                                                                />
+                                                                <span>{option}</span>
+                                                            </label>
+                                                        ))
+                                                    ) : (
+                                                        <p className="text-sm text-[#9CA3AF]">No plan data found</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <span className="text-[14px] font-medium text-[#4B5563]">Duration</span>
+                                                <div className="mt-2 space-y-1">
+                                                    <label className="flex items-center space-x-2 text-sm text-[#4B5563] hover:bg-gray-50 p-2 rounded cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name="subscriptionDurationFilter"
+                                                            value="all"
+                                                            checked={subscriptionDurationFilter === 'all'}
+                                                            onChange={() => setSubscriptionDurationFilter('all')}
+                                                        />
+                                                        <span>All</span>
+                                                    </label>
+                                                    {subscriptionDurationOptions.length > 0 ? (
+                                                        subscriptionDurationOptions.map(option => (
+                                                            <label
+                                                                key={option}
+                                                                className="flex items-center space-x-2 text-sm text-[#4B5563] hover:bg-gray-50 p-2 rounded cursor-pointer"
+                                                            >
+                                                                <input
+                                                                    type="radio"
+                                                                    name="subscriptionDurationFilter"
+                                                                    value={option}
+                                                                    checked={subscriptionDurationFilter === option}
+                                                                    onChange={() => handleSubscriptionDurationFilterChange(option)}
+                                                                />
+                                                                <span>{option}</span>
+                                                            </label>
+                                                        ))
+                                                    ) : (
+                                                        <p className="text-sm text-[#9CA3AF]">No duration data found</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-3 w-full lg:w-auto">
+                                <button
+                                    onClick={openCreateSubscriptionModal}
+                                    className="flex items-center justify-center space-x-2 px-4 py-2 bg-white border border-[#6C63FF] text-[#6C63FF] rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <MdOutlineAdd className="w-5 h-5" />
+                                        <span className="text-[16px] font-medium ">Add</span>
+                                    </div>
+                                </button>
+                                <button
+                                    onClick={handleExportSubscriptions}
+                                    className="flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                    <span className="text-[16px] font-medium">Export</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white border border-[#E5E7EB] rounded-2xl overflow-x-auto">
+                        {subscriptionsLoading && subscriptionRows.length === 0 ? (
+                            <div className="p-8 flex justify-center">
+                                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#6C63FF]"></div>
+                            </div>
+                        ) : null}
+                        <table className="w-full rounded-2xl">
+                            <thead className="bg-[#F8F8FF] border-b border-[#0000001A]">
+                                <tr>
+                                    <th className="p-4 text-left text-[16px] font-medium text-[#4B5563] w-1/3">Company Name</th>
+                                    <th className="p-4 text-left text-[16px] font-medium text-[#4B5563] w-1/3">Plan Type & Duration</th>
+                                    <th className="p-4 text-left text-[16px] font-medium text-[#4B5563] w-1/4">Expires On</th>
+                                    <th className="p-4 text-left text-[16px] font-medium text-[#4B5563] w-1/6 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paginatedSubscriptions.length > 0 ? (
+                                    paginatedSubscriptions.map((record, index) => {
+                                        const combinedPlan = record.duration && record.duration !== 'N/A'
+                                            ? `${record.planName} / ${record.duration}`
+                                            : record.planName;
+
+                                        return (
+                                            <tr key={record.id || index} className="hover:bg-[#F8FAFC] transition-colors">
+                                                <td className="p-4 whitespace-nowrap text-[16px] font-medium text-[#4B5563]">
+                                                    <div className="flex flex-col">
+                                                        <span>{record.companyName}</span>
+                                                        {record.email && (
+                                                            <span className="text-sm text-[#6B7280]">{record.email}</span>
+                                                        )}
+                                                        {record.raw?.userName && (
+                                                            <span className="text-xs text-[#9CA3AF]">{record.raw.userName}</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 whitespace-nowrap text-[16px] font-medium text-[#4B5563]">
+                                                    {combinedPlan}
+                                                </td>
+                                                <td className="p-4 whitespace-nowrap text-[16px] font-medium text-[#4B5563]">
+                                                    {record.expiresAt}
+                                                </td>
+                                                <td className="p-4 whitespace-nowrap text-center">
+                                                    <button
+                                                        className="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-[#E5E7EB] bg-white transition-all duration-200 hover:bg-[#EEF2FF]"
+                                                        onClick={() => openEditSubscriptionModal(record)}
+                                                        title="Review subscription"
+                                                    >
+                                                        <MdOutlineEdit className="w-5 h-5 text-[#6C63FF]" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan={4} className="px-6 py-8 text-center text-[16px] font-medium text-[#4B5563]">
+                                            {subscriptionsLoading ? 'Loading subscriptions...' : 'No subscriptions found'}
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+
+                        {source.length > 0 && (
+                            <div className="px-4 pb-6">
+                                <PaginationComponent
+                                    currentPage={currentPageSubscriptions}
+                                    totalPages={getTotalPages(source, rowsPerPageSubscriptions)}
+                                    onPageChange={(page) => setCurrentPageSubscriptions(page)}
+                                    totalItems={source.length}
+                                    rowsPerPage={rowsPerPageSubscriptions}
+                                    onRowsPerPageChange={(value) => {
+                                        setRowsPerPageSubscriptions(value);
+                                        setCurrentPageSubscriptions(1);
+                                    }}
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderPlanCards = () => (
         <div className="h-full">
 
             <div className="flex flex-col lg:flex-row w-full gap-6 justify-center items-start mt-10">
@@ -2401,6 +2941,35 @@ const SuperAdmin = () => {
                 )
             }
 
+        </div>
+    );
+
+    const renderPlanManagement = () => (
+        <div className="h-full">
+            <nav className="flex space-x-8">
+                <button
+                    onClick={() => { setPlanManagementInnerTab('plan') }}
+                    className={`py-2 px-3 border-b-2 font-medium text-[16px] transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${planManagementInnerTab === 'plan'
+                        ? 'border-[#6C63FF] text-[#FFFFFF] rounded-t-lg bg-[#2563EB]'
+                        : 'border-transparent text-[#4B5563]'
+                        }`}
+                    title="View Plan Management"
+                >
+                    Plan Management
+                </button>
+                <button
+                    onClick={() => { setPlanManagementInnerTab('subscription') }}
+                    className={`py-2 px-3 border-b-2 font-medium text-[16px] transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${planManagementInnerTab === 'subscription'
+                        ? 'border-[#6C63FF] text-[#FFFFFF] rounded-t-lg bg-[#2563EB]'
+                        : 'border-transparent text-[#4B5563]'
+                        }`}
+                    title="View Subscription Management"
+                >
+                    Subscription Management
+                </button>
+            </nav>
+
+            {planManagementInnerTab === 'plan' ? renderPlanCards() : renderSubscriptionManagement()}
         </div>
     );
 
@@ -2974,8 +3543,8 @@ const SuperAdmin = () => {
                 <nav className="flex space-x-8">
                     <button
                         onClick={() => { setSupportTab('active') }}
-                        className={`py-2 px-1 border-b-2 font-medium text-[16px] transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] ${supportTab === 'active'
-                            ? 'border-[#6C63FF] text-[#6C63FF]'
+                        className={`py-2 px-1 border-b-2 font-medium text-[16px] transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${supportTab === 'active'
+                            ? 'border-[#6C63FF] text-[#FFFFFF] rounded-t-lg bg-[#2563EB]'
                             : 'border-transparent text-[#4B5563]'
                             }`}
                         title="View active support tickets"
@@ -2984,8 +3553,8 @@ const SuperAdmin = () => {
                     </button>
                     <button
                         onClick={() => { setSupportTab('Enterprise') }}
-                        className={`py-2 px-1 border-b-2 font-medium text-[16px] transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] ${supportTab === 'Enterprise'
-                            ? 'border-[#6C63FF] text-[#6C63FF]'
+                        className={`py-2 px-1 border-b-2 font-medium text-[16px] transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${supportTab === 'Enterprise'
+                            ? 'border-[#6C63FF] text-[#FFFFFF] rounded-t-lg bg-[#2563EB]'
                             : 'border-transparent text-[#4B5563]'
                             }`}
                         title="View Enterprise support tickets"
@@ -2994,8 +3563,8 @@ const SuperAdmin = () => {
                     </button>
                     <button
                         onClick={() => { setSupportTab('resolved') }}
-                        className={`py-2 px-1 border-b-2 font-medium text-[16px] transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] ${supportTab === 'resolved'
-                            ? 'border-[#6C63FF] text-[#6C63FF]'
+                        className={`py-2 px-1 border-b-2 font-medium text-[16px] transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${supportTab === 'resolved'
+                            ? 'border-[#6C63FF] text-[#FFFFFF] rounded-t-lg bg-[#2563EB]'
                             : 'border-transparent text-[#4B5563]'
                             }`}
                         title="View resolved support tickets"
@@ -4573,6 +5142,157 @@ const SuperAdmin = () => {
     };
 
     // Inline Invoice Modal Component
+    const SubscriptionManagementModal = ({
+        isOpen,
+        mode,
+        form,
+        onChange,
+        onClose,
+        onSubmit,
+        onReset,
+        onDeactivate,
+        loading,
+        planOptions,
+        durationOptions,
+        record
+    }) => {
+        if (!isOpen) return null;
+
+        const actionLabel = mode === 'create' ? 'Activate Plan' : 'Save Changes';
+
+        return (
+            <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/40 px-4">
+                <div className="bg-white rounded-2xl w-full max-w-xl p-6 space-y-6 shadow-xl">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-semibold text-[#111827]">
+                            {mode === 'create' ? 'Activate Subscription Plan' : 'Update Subscription Plan'}
+                        </h3>
+                        <button
+                            onClick={onClose}
+                            className="p-2 rounded-full hover:bg-gray-100 text-[#4B5563]"
+                        >
+                            <MdOutlineClose className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {mode === 'edit' && record ? (
+                        <div className="bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg p-4 text-sm text-[#4B5563] space-y-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                <span><span className="font-medium">Company:</span> {record.companyName}</span>
+                                {record.raw?.userName && (
+                                    <span><span className="font-medium">Contact:</span> {record.raw.userName}</span>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <span><span className="font-medium">Start:</span> {formatSubscriptionExpiry(record.startDate)}</span>
+                                <span><span className="font-medium">Renewal:</span> {formatSubscriptionExpiry(record.renewalDate)}</span>
+                                <span><span className="font-medium">Expires:</span> {record.expiresAt}</span>
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                <span><span className="font-medium">Auto Renewal:</span> {record.autoRenewal ? 'Yes' : 'No'}</span>
+                                <span><span className="font-medium">Current Usage:</span> {`${record.raw?.current_rfp_proposal_generations ?? 0}/${record.raw?.max_rfp_proposal_generations ?? 0} RFP • ${record.raw?.current_grant_proposal_generations ?? 0}/${record.raw?.max_grant_proposal_generations ?? 0} Grant`}</span>
+                            </div>
+                        </div>
+                    ) : null}
+
+                    <div className="space-y-4">
+                        <div className="flex flex-col">
+                            <label className="text-sm font-medium text-[#4B5563] mb-1">Email ID</label>
+                            <input
+                                type="email"
+                                value={form.email}
+                                onChange={(e) => onChange('email', e.target.value)}
+                                placeholder="company@example.com"
+                                className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                disabled={loading}
+                            />
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="text-sm font-medium text-[#4B5563] mb-1">Plan Type</label>
+                            <select
+                                value={form.planName}
+                                onChange={(e) => onChange('planName', e.target.value)}
+                                className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                disabled={loading}
+                            >
+                                <option value="">Select plan</option>
+                                {planOptions.map(option => (
+                                    <option key={option} value={option}>{option}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="text-sm font-medium text-[#4B5563] mb-1">Plan Duration</label>
+                            <select
+                                value={form.duration}
+                                onChange={(e) => onChange('duration', e.target.value)}
+                                className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                disabled={loading}
+                            >
+                                {durationOptions.map(option => (
+                                    <option key={option} value={option}>{option}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="text-sm font-medium text-[#4B5563] mb-1">Expiry Date (optional)</label>
+                            <input
+                                type="date"
+                                value={form.expiresAt || ''}
+                                onChange={(e) => onChange('expiresAt', e.target.value)}
+                                className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        {mode === 'edit' ? (
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <button
+                                    onClick={onReset}
+                                    className="flex-1 sm:flex-none px-4 py-2 border border-[#E5E7EB] text-[#4B5563] rounded-lg hover:bg-gray-50 transition"
+                                    disabled={loading}
+                                >
+                                    Reset Plan
+                                </button>
+                                <button
+                                    onClick={onDeactivate}
+                                    className="flex-1 sm:flex-none px-4 py-2 border border-[#FCA5A5] text-[#B91C1C] rounded-lg hover:bg-red-50 transition"
+                                    disabled={loading}
+                                >
+                                    Deactivate
+                                </button>
+                            </div>
+                        ) : (
+                            <span className="text-sm text-[#6B7280]">Enter customer email and select plan to activate manually.</span>
+                        )}
+
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <button
+                                onClick={onClose}
+                                className="flex-1 sm:flex-none px-4 py-2 border border-[#E5E7EB] text-[#4B5563] rounded-lg hover:bg-gray-50 transition"
+                                disabled={loading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={onSubmit}
+                                className="flex-1 sm:flex-none px-4 py-2 bg-gradient-to-r from-[#6C63FF] to-[#3F73BD] text-white rounded-lg shadow-md hover:shadow-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
+                                disabled={loading}
+                            >
+                                {loading ? 'Processing...' : actionLabel}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     const InlineInvoiceModal = ({ data, isOpen, onClose }) => {
         if (!isOpen || !data) return null;
 
@@ -4670,6 +5390,20 @@ const SuperAdmin = () => {
             {/* Modals */}
             {viewUserModal && <UserViewModal />}
             {viewSupportModal && <SupportViewModal />}
+            <SubscriptionManagementModal
+                isOpen={subscriptionModalOpen}
+                mode={subscriptionModalMode}
+                form={subscriptionForm}
+                onChange={handleSubscriptionFormChange}
+                onClose={closeSubscriptionModal}
+                onSubmit={handleSubscriptionSubmit}
+                onReset={handleSubscriptionReset}
+                onDeactivate={handleSubscriptionDeactivate}
+                loading={subscriptionActionLoading}
+                planOptions={availablePlanOptions}
+                durationOptions={availableDurationOptions}
+                record={selectedSubscriptionRecord}
+            />
 
 
 
@@ -4882,6 +5616,7 @@ const SuperAdmin = () => {
                                         }`}
                                     onClick={() => {
                                         setActiveTab('plan-management');
+                                        window.location.hash = 'plan-management';
                                         closeAllInvoiceRows();
                                     }}
                                 >
@@ -4896,6 +5631,7 @@ const SuperAdmin = () => {
                                         }`}
                                     onClick={() => {
                                         setActiveTab('contact-request');
+                                        window.location.hash = 'contact-request';
                                         closeAllInvoiceRows();
                                     }}
                                 >
@@ -4993,7 +5729,7 @@ const SuperAdmin = () => {
 
                                 <div className="flex items-center">
                                     <div className="w-full h-8 rounded-lg flex items-center justify-center mr-3">
-                                        <span className="text-white font-bold text-lg">{activeTab === 'user-management' ? 'User Management' : activeTab === 'payments' ? 'Payments' : activeTab === 'plan-management' ? 'Plan Management' : activeTab === 'contact-request' ? 'Contact Request' : activeTab === 'support' ? 'Support' : activeTab === 'notifications' ? 'Notifications' : activeTab === 'email-content' ? 'Email Content' : 'Contact Request'}</span>
+                                        <span className="text-white font-bold text-lg">{activeTab === 'user-management' ? 'User Management' : activeTab === 'payments' ? 'Payments' : activeTab === 'plan-management' ? (planManagementInnerTab === 'plan' ? 'Plan Management' : 'Subscription Management') : activeTab === 'contact-request' ? 'Contact Request' : activeTab === 'support' ? 'Support' : activeTab === 'notifications' ? 'Notifications' : activeTab === 'email-content' ? 'Email Content' : 'Contact Request'}</span>
 
                                     </div>
                                 </div>

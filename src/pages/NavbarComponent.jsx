@@ -39,8 +39,8 @@ const NavbarComponent = () => {
     <nav className="fixed top-0 left-0 right-0 bg-white border-b shadow-sm h-20 flex items-center justify-between px-8 z-50">
       <div className="flex items-center gap-4">
         <div className="md:hidden hover:cursor-pointer">
-          <FiMenu 
-            className="text-lg transition-colors hover:text-[#2563EB]" 
+          <FiMenu
+            className="text-lg transition-colors hover:text-[#2563EB]"
             onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
             title={isMobileNavOpen ? "Close menu" : "Open navigation menu"}
           />
@@ -57,7 +57,7 @@ const NavbarComponent = () => {
             <button
               key={name}
               onClick={() => navigate(path)}
-              className={`text-[18px] hover:text-[#000000] font-medium transition-colors ${location.pathname === path ? "text-[#2563EB]" : "text-[#4B5563] font-regular"
+              className={`text-[18px] hover:text-[#2563EB] font-medium transition-colors ${location.pathname === path ? "text-[#2563EB]" : "text-[#4B5563] font-regular"
                 }`}
               title={`Navigate to ${name}`}
             >
@@ -69,10 +69,10 @@ const NavbarComponent = () => {
         {isMobileNavOpen && (
           <div className="absolute top-16 left-0 right-0 bg-white shadow-md z-50">
             {navItems.map(({ name, path }) => (
-              <button 
-                key={name} 
-                onClick={() => navigate(path)} 
-                className={`block w-full text-left px-4 py-2 text-[18px] hover:text-[#000000] font-medium transition-colors ${location.pathname === path ? "text-[#2563EB]" : "text-[#4B5563] font-regular"
+              <button
+                key={name}
+                onClick={() => navigate(path)}
+                className={`block w-full text-left px-4 py-2 text-[18px] hover:text-[#2563EB] font-medium transition-colors ${location.pathname === path ? "text-[#2563EB]" : "text-[#4B5563] font-regular"
                   }`}
                 title={`Navigate to ${name}`}
               >
@@ -83,8 +83,8 @@ const NavbarComponent = () => {
         )}
       </div>
       <div className="flex items-center gap-4">
-        <button 
-          className="flex items-center gap-2 hover:cursor-pointer transition-colors hover:text-[#2563EB]" 
+        <button
+          className="flex items-center gap-2 hover:cursor-pointer transition-colors hover:text-[#2563EB]"
           onClick={() => handleProfileClick()}
           title={showDropdown ? "Close profile menu" : "Open profile menu"}
         >
@@ -93,16 +93,16 @@ const NavbarComponent = () => {
       </div>
 
       {showDropdown && (
-        <div className="absolute top-16 right-0 bg-[#F8F9FA] shadow-md z-100">
-          <button 
-            className="block w-full text-left px-4 py-2 text-[18px] hover:text-[#000000] font-medium transition-colors" 
-            onClick={() => navigate("/change-password")}
+        <div className="absolute top-16 right-0 md:right-8 bg-gradient-to-br from-[#fdfbfb] to-[#ebedee] shadow-lg rounded-2xl z-100 border border-gray-200 overflow-hidden">
+          <button
+            className="block w-full text-left px-5 py-2 text-[18px] text-gray-700 hover:text-white hover:bg-[#4F46E5] hover:shadow-[0_0_10px_rgba(79,70,229,0.5)] font-medium transition-all duration-300 rounded-none first:rounded-t-2xl"
+            onClick={() => navigate('/change-password')}
             title="Change your account password"
           >
             Change Password
           </button>
-          <button 
-            className="block w-full text-left px-4 py-2 text-[18px] hover:text-[#000000] font-medium transition-colors" 
+          <button
+            className="block w-full text-left px-5 py-2 text-[18px] text-gray-700 hover:text-white hover:bg-[#DC2626] hover:shadow-[0_0_10px_rgba(220,38,38,0.5)] font-medium transition-all duration-300 rounded-none last:rounded-b-2xl"
             onClick={() => handleLogout()}
             title="Log out of your account"
           >
