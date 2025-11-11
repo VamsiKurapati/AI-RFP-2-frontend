@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import NavbarComponent from './NavbarComponent';
-import { MdOutlineArrowBack, MdOutlineOpenInNew } from 'react-icons/md';
+import { MdOutlineArrowBack, MdOutlineOpenInNew, MdOutlineDownload } from 'react-icons/md';
 
 const statusBadge = (status) => {
     const statusStyles = {
@@ -21,6 +21,17 @@ const statusBadge = (status) => {
             {status}
         </span>
     );
+};
+
+const hasMeaningfulValue = (value) => {
+    if (value === null || value === undefined) return false;
+    if (typeof value !== 'string') return true;
+
+    const trimmed = value.trim();
+    if (!trimmed) return false;
+
+    const lower = trimmed.toLowerCase();
+    return lower !== 'not provided' && lower !== 'not specified';
 };
 
 const RFPDetails = () => {
@@ -94,10 +105,24 @@ const RFPDetails = () => {
     const externalUrl = isRFP
         ? (item.link || item.url || item.urlLink)
         : (item.OPPORTUNITY_NUMBER_LINK || item.LINK_TO_ADDITIONAL_INFORMATION || item.url || item.urlLink || item.link);
+    const docsLink = item.docsLink || item.DOCS_LINK || '';
+    const office = item.office || item.OFFICE || '';
+    const issuingOffice = item.issuingOffice || item.ISSUING_OFFICE || '';
+    const stateOrProvince = item.state || item.STATE || '';
+    const country = item.country || item.COUNTRY || '';
+    const location_display = [stateOrProvince, country].filter((part) => hasMeaningfulValue(part)).join(', ');
+    const matchScore = typeof item.match === 'number' ? `${item.match.toFixed(2)}%` : item.match;
+    const hasDocsLink = hasMeaningfulValue(docsLink);
 
     const handleExternalLink = () => {
         if (externalUrl && externalUrl !== '#') {
             window.open(externalUrl, '_blank', 'noopener,noreferrer');
+        }
+    };
+
+    const handleDocsLink = () => {
+        if (hasDocsLink) {
+            window.open(docsLink, '_blank', 'noopener,noreferrer');
         }
     };
 
@@ -179,6 +204,33 @@ const RFPDetails = () => {
                             <p className="text-lg text-gray-900">{organizationOrAgency}</p>
                         </div>
 
+                        {isRFP && hasMeaningfulValue(office) && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-500 mb-2">
+                                    Office
+                                </label>
+                                <p className="text-lg text-gray-900">{office}</p>
+                            </div>
+                        )}
+
+                        {isRFP && hasMeaningfulValue(issuingOffice) && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-500 mb-2">
+                                    Issuing Office
+                                </label>
+                                <p className="text-lg text-gray-900">{issuingOffice}</p>
+                            </div>
+                        )}
+
+                        {hasMeaningfulValue(location_display) && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-500 mb-2">
+                                    Location
+                                </label>
+                                <p className="text-lg text-gray-900">{location_display}</p>
+                            </div>
+                        )}
+
                         {isRFP && item.organizationType && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
@@ -257,12 +309,12 @@ const RFPDetails = () => {
                             </div>
                         )}
 
-                        {isRFP && item.match !== undefined && (
+                        {isRFP && hasMeaningfulValue(matchScore) && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500 mb-2">
                                     Match Score
                                 </label>
-                                <p className="text-lg text-gray-900">{item.match.toFixed(2)}%</p>
+                                <p className="text-lg text-gray-900">{matchScore}</p>
                             </div>
                         )}
 
@@ -482,10 +534,32 @@ const RFPDetails = () => {
                     ) : null}
 
                     {/* External Links Section */}
-                    {(externalUrl && externalUrl !== '#') || (!isRFP && item.LINK_TO_ADDITIONAL_INFORMATION && item.LINK_TO_ADDITIONAL_INFORMATION !== 'Not Provided') ? (
+                    {(isRFP || hasDocsLink || (externalUrl && externalUrl !== '#') || (!isRFP && item.LINK_TO_ADDITIONAL_INFORMATION && item.LINK_TO_ADDITIONAL_INFORMATION !== 'Not Provided')) ? (
                         <div className="mt-8 pt-6 border-t border-gray-200">
                             <h2 className="text-xl font-semibold text-gray-900 mb-4">External Links</h2>
                             <div className="flex flex-wrap gap-4">
+                                {isRFP ? (
+                                    <button
+                                        onClick={handleDocsLink}
+                                        className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled={!hasDocsLink}
+                                        title={hasDocsLink ? "Download related documents" : "Documents link not available"}
+                                    >
+                                        <span>View Documents</span>
+                                        <MdOutlineDownload className="w-5 h-5" />
+                                    </button>
+                                ) : (
+                                    hasDocsLink && (
+                                        <button
+                                            onClick={handleDocsLink}
+                                            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-all duration-200 shadow-sm"
+                                            title="Download related documents"
+                                        >
+                                            <span>View Documents</span>
+                                            <MdOutlineOpenInNew className="w-5 h-5" />
+                                        </button>
+                                    )
+                                )}
                                 {externalUrl && externalUrl !== '#' && (
                                     <button
                                         onClick={handleExternalLink}

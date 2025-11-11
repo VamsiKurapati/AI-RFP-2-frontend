@@ -21,6 +21,17 @@ const statusBadge = (status) => {
     );
 };
 
+const hasMeaningfulValue = (value) => {
+    if (value === null || value === undefined) return false;
+    if (typeof value !== 'string') return true;
+
+    const trimmed = value.trim();
+    if (!trimmed) return false;
+
+    const lower = trimmed.toLowerCase();
+    return lower !== 'not provided' && lower !== 'not specified';
+};
+
 const RFPModal = ({ item, type, isOpen, onClose }) => {
     const navigate = useNavigate();
 
@@ -57,6 +68,15 @@ const RFPModal = ({ item, type, isOpen, onClose }) => {
         ? (item.link || item.url || item.urlLink)
         : (item.OPPORTUNITY_NUMBER_LINK || item.LINK_TO_ADDITIONAL_INFORMATION || item.url || item.urlLink || item.link);
 
+    const docsLink = item.docsLink || item.DOCS_LINK || '';
+    const office = item.office || item.OFFICE || '';
+    const issuingOffice = item.issuingOffice || item.ISSUING_OFFICE || '';
+    const stateOrProvince = item.state || item.STATE || '';
+    const country = item.country || item.COUNTRY || '';
+    const location = [stateOrProvince, country].filter((part) => part && part !== 'Not Provided' && part !== 'Not specified').join(', ');
+    const matchScoreDisplay = typeof item.match === 'number' ? `${item.match.toFixed(2)}%` : item.match;
+    const hasDocsLink = hasMeaningfulValue(docsLink);
+
     // Format date helper
     const formatDate = (dateString) => {
         if (!dateString || dateString === 'Not Provided' || dateString === 'Not Disclosed') return 'Not Provided';
@@ -85,6 +105,13 @@ const RFPModal = ({ item, type, isOpen, onClose }) => {
         e.stopPropagation();
         if (externalUrl && externalUrl !== '#') {
             window.open(externalUrl, '_blank', 'noopener,noreferrer');
+        }
+    };
+
+    const handleDocsLink = (e) => {
+        e.stopPropagation();
+        if (hasDocsLink) {
+            window.open(docsLink, '_blank', 'noopener,noreferrer');
         }
     };
 
@@ -118,6 +145,27 @@ const RFPModal = ({ item, type, isOpen, onClose }) => {
                         <p className="text-lg text-gray-900 mt-1">{organizationOrAgency}</p>
                     </div>
 
+                    {isRFP && hasMeaningfulValue(office) && (
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Office</label>
+                            <p className="text-lg text-gray-900 mt-1">{office}</p>
+                        </div>
+                    )}
+
+                    {isRFP && hasMeaningfulValue(issuingOffice) && (
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Issuing Office</label>
+                            <p className="text-lg text-gray-900 mt-1">{issuingOffice}</p>
+                        </div>
+                    )}
+
+                    {hasMeaningfulValue(location) && (
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Location</label>
+                            <p className="text-lg text-gray-900 mt-1">{location}</p>
+                        </div>
+                    )}
+
                     <div>
                         <label className="text-sm font-medium text-gray-500">
                             {isRFP ? 'Deadline' : 'Close Date / Due Date'}
@@ -125,10 +173,10 @@ const RFPModal = ({ item, type, isOpen, onClose }) => {
                         <p className="text-lg text-gray-900 mt-1">{formatDate(deadline)}</p>
                     </div>
 
-                    {isRFP && item.match !== undefined && (
+                    {isRFP && hasMeaningfulValue(matchScoreDisplay) && (
                         <div>
                             <label className="text-sm font-medium text-gray-500">Match Score</label>
-                            <p className="text-lg text-gray-900 mt-1">{item.match.toFixed(2)}%</p>
+                            <p className="text-lg text-gray-900 mt-1">{matchScoreDisplay}</p>
                         </div>
                     )}
 
@@ -170,6 +218,26 @@ const RFPModal = ({ item, type, isOpen, onClose }) => {
 
                 {/* Modal Footer */}
                 <div className="flex items-center justify-end gap-4 p-6 border-t border-gray-200 sticky bottom-0 bg-white">
+                    {isRFP ? (
+                        <button
+                            onClick={handleDocsLink}
+                            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!hasDocsLink}
+                            title={hasDocsLink ? "View related documents" : "Documents link not available"}
+                        >
+                            View Documents
+                        </button>
+                    ) : (
+                        hasDocsLink && (
+                            <button
+                                onClick={handleDocsLink}
+                                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                                title="View related documents"
+                            >
+                                View Documents
+                            </button>
+                        )
+                    )}
                     <button
                         onClick={handleExternalLink}
                         className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

@@ -3,7 +3,6 @@ import {
     MdOutlineSearch,
     MdOutlineAdd,
     MdOutlineNotifications,
-    MdOutlinePerson,
     MdOutlineManageAccounts,
     MdOutlinePayments,
     MdOutlineHeadsetMic,
@@ -26,14 +25,16 @@ import {
     MdLanguage,
     MdOutlinePhone,
     MdOutlinePermContactCalendar,
-    MdOutlineEdit
+    MdOutlineEdit,
+    MdOutlinePowerSettingsNew
 } from 'react-icons/md';
 import { IoLogoLinkedin } from "react-icons/io";
 import { LuCrown } from "react-icons/lu";
 import { FaRegCheckCircle } from "react-icons/fa";
 
 import axios from 'axios';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
+import { useUser } from '../context/UserContext';
 import ToastContainer from '../pages/ToastContainer';
 import { toast } from 'react-toastify';
 import Card from '../components/SuperAdminComponents/Card';
@@ -53,11 +54,216 @@ import request from '../assets/superAdmin/request.png';
 import other from '../assets/superAdmin/other.png';
 import ShowCustomDetails from '../components/SuperAdminComponents/ShowCustomDetails';
 
+const SubscriptionManagementModal = React.memo(({
+    isOpen,
+    mode,
+    form,
+    onChange,
+    onClose,
+    onSubmit,
+    onDeactivate,
+    loading,
+    note,
+    onNoteChange,
+    record,
+    formatSubscriptionExpiry
+}) => {
+    if (!isOpen) return null;
+
+    const actionLabel = mode === 'create' ? 'Activate Plan' : 'Save Changes';
+
+    return (
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-xl shadow-xl flex flex-col max-h-[90vh]">
+                <div className="flex items-center justify-between sticky top-0 bg-white px-6 pt-6 pb-4 border-b border-[#E5E7EB] z-10">
+                    <h3 className="text-xl font-semibold text-[#111827]">
+                        {mode === 'create' ? 'Activate Subscription Plan' : 'Update Subscription Plan'}
+                    </h3>
+                    <button
+                        onClick={onClose}
+                        className="p-2 rounded-full hover:bg-gray-100 text-[#4B5563]"
+                    >
+                        <MdOutlineClose className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <div className="px-6 pb-6 space-y-6 overflow-y-auto mt-4">
+                    {mode === 'edit' && record ? (
+                        <div className="bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg p-4 text-sm text-[#4B5563] space-y-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                <span><span className="font-medium">User Email:</span> {record.email}</span>
+                                {record.raw?.userName && (
+                                    <span><span className="font-medium">User Name:</span> {record.raw.userName}</span>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <span><span className="font-medium">Start Date:</span> {formatSubscriptionExpiry(record.startDate)}</span>
+                                <span><span className="font-medium">Expires At:</span> {formatSubscriptionExpiry(record.expiresAt)}</span>
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                <span><span className="font-medium">Auto Renewal:</span> {record.autoRenewal ? 'Yes' : 'No'}</span>
+                                <span><span className="font-medium">Current Usage:</span> {`${record.raw?.current_rfp_proposal_generations ?? 0}/${record.raw?.max_rfp_proposal_generations ?? 0} RFP • ${record.raw?.current_grant_proposal_generations ?? 0}/${record.raw?.max_grant_proposal_generations ?? 0} Grant`}</span>
+                            </div>
+                        </div>
+                    ) : null}
+
+                    <div className="mt-4 space-y-4">
+                        <div className="flex flex-col">
+                            <label className="text-sm font-medium text-[#4B5563] mb-1">Email ID</label>
+                            <input
+                                type="email"
+                                value={form.email}
+                                onChange={(e) => onChange('email', e.target.value)}
+                                placeholder="company@example.com"
+                                className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                disabled={loading}
+                            />
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="text-sm font-medium text-[#4B5563] mb-1">Plan Type</label>
+                            <select
+                                value={form.planName}
+                                onChange={(e) => onChange('planName', e.target.value)}
+                                className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                disabled={loading}
+                            >
+                                <option value="">Select plan</option>
+                                {["Basic", "Pro", "Enterprise"].map(option => (
+                                    <option key={option} value={option}>{option}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="text-sm font-medium text-[#4B5563] mb-1">Plan Duration</label>
+                            <select
+                                value={form.duration}
+                                onChange={(e) => onChange('duration', e.target.value)}
+                                className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                disabled={loading}
+                            >
+                                {["Monthly", "Yearly"].map(option => (
+                                    <option key={option} value={option}>{option}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* {mode === 'edit' && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="flex flex-col">
+                                    <label className="text-sm font-medium text-[#4B5563] mb-1">Max Editors</label>
+                                    <input
+                                        type="number"
+                                        value={form.maxEditors ?? ''}
+                                        onChange={(e) => onChange('maxEditors', e.target.value)}
+                                        placeholder="Enter max editors"
+                                        className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                        disabled={loading}
+                                        min="0"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-sm font-medium text-[#4B5563] mb-1">Max Viewers</label>
+                                    <input
+                                        type="number"
+                                        value={form.maxViewers ?? ''}
+                                        onChange={(e) => onChange('maxViewers', e.target.value)}
+                                        placeholder="Enter max viewers"
+                                        className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                        disabled={loading}
+                                        min="0"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-sm font-medium text-[#4B5563] mb-1">Max RFP Generations</label>
+                                    <input
+                                        type="number"
+                                        value={form.maxRFPProposalGenerations ?? ''}
+                                        onChange={(e) => onChange('maxRFPProposalGenerations', e.target.value)}
+                                        placeholder="Enter max RFP generations"
+                                        className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                        disabled={loading}
+                                        min="0"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-sm font-medium text-[#4B5563] mb-1">Max Grant Generations</label>
+                                    <input
+                                        type="number"
+                                        value={form.maxGrantProposalGenerations ?? ''}
+                                        onChange={(e) => onChange('maxGrantProposalGenerations', e.target.value)}
+                                        placeholder="Enter max grant generations"
+                                        className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                        disabled={loading}
+                                        min="0"
+                                    />
+                                </div>
+                            </div>
+                        )} */}
+
+                        <div className="flex flex-col">
+                            <label className="text-sm font-medium text-[#4B5563] mb-1">Note (optional)</label>
+                            <textarea
+                                value={note}
+                                onChange={(e) => onNoteChange(e.target.value)}
+                                rows={3}
+                                placeholder={mode === 'edit' ? "Explain why you are updating this plan (Included in the owner notification email, only if you provide a note)." : "Explain why you are activating this plan (Included in the owner notification email, only if you provide a note)."}
+                                className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        {mode === 'edit' ? (
+                            record?.isActive ? (
+                                <button
+                                    onClick={() => onDeactivate(note)}
+                                    className="flex-1 sm:flex-none px-4 py-2 border border-[#FCA5A5] text-[#B91C1C] rounded-lg hover:bg-red-50 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                                    disabled={loading}
+                                    title="Deactivate this plan immediately"
+                                >
+                                    Deactivate Plan
+                                </button>
+                            ) : (
+                                <span className="text-xs text-[#6B7280]">Plan already inactive</span>
+                            )
+                        ) : null}
+
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <button
+                                onClick={onClose}
+                                className="flex-1 sm:flex-none px-4 py-2 border border-[#E5E7EB] text-[#4B5563] rounded-lg hover:bg-gray-50 transition"
+                                disabled={loading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={onSubmit}
+                                className="flex-1 sm:flex-none px-4 py-2 bg-gradient-to-r from-[#6C63FF] to-[#3F73BD] text-white rounded-lg shadow-md hover:shadow-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
+                                disabled={loading}
+                            >
+                                {loading ? 'Processing...' : actionLabel}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+});
+
 
 
 
 const SuperAdmin = () => {
     const navigate = useNavigate();
+    const { role } = useUser();
+    const isSuperAdmin = (role || '').toLowerCase() === 'superadmin';
     const [activeTab, setActiveTab] = useState(() => {
         // Load activeTab from URL hash or default to 'user-management'
         return window.location.hash.slice(1) ? window.location.hash.slice(1) : 'user-management';
@@ -100,14 +306,23 @@ const SuperAdmin = () => {
     const [filteredSubscriptions, setFilteredSubscriptions] = useState([]);
     const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
     const [subscriptionModalMode, setSubscriptionModalMode] = useState('create');
-    const [subscriptionForm, setSubscriptionForm] = useState({
+    const createDefaultSubscriptionForm = useCallback(() => ({
         email: '',
         planName: '',
         duration: 'Monthly',
-        expiresAt: ''
-    });
+        expiresAt: '',
+        maxEditors: '',
+        maxViewers: '',
+        maxRFPProposalGenerations: '',
+        maxGrantProposalGenerations: ''
+    }), []);
+    const [subscriptionForm, setSubscriptionForm] = useState(createDefaultSubscriptionForm);
     const [subscriptionActionLoading, setSubscriptionActionLoading] = useState(false);
     const [selectedSubscriptionRecord, setSelectedSubscriptionRecord] = useState(null);
+    const [subscriptionNote, setSubscriptionNote] = useState('');
+    const [selectedSubscriptions, setSelectedSubscriptions] = useState(() => new Set());
+    const [bulkActionNote, setBulkActionNote] = useState('');
+    const [bulkProcessing, setBulkProcessing] = useState(false);
 
     // Filters
     const [userStatusFilter, setUserStatusFilter] = useState('all');
@@ -480,6 +695,9 @@ const SuperAdmin = () => {
     };
 
     const fetchAllSubscriptions = useCallback(async () => {
+        if (!isSuperAdmin) {
+            return;
+        }
         setSubscriptionsLoading(true);
         try {
             const response = await axios.get(`${baseUrl}/admin/getSubscriptionsOfAllUsers`, {
@@ -496,7 +714,7 @@ const SuperAdmin = () => {
         } finally {
             setSubscriptionsLoading(false);
         }
-    }, [baseUrl]);
+    }, [baseUrl, isSuperAdmin]);
 
     // Plan & Subscription helpers
     const toTitleCase = (value = '') =>
@@ -541,6 +759,11 @@ const SuperAdmin = () => {
         return `${diffDays} Days`;
     };
 
+    const getNumberOfMonths = (duration) => {
+        const numberOfMonths = duration / 30;
+        return Math.floor(numberOfMonths);
+    };
+
     const formatSubscriptionExpiry = (value) => {
         if (!value) return 'N/A';
 
@@ -563,6 +786,25 @@ const SuperAdmin = () => {
             return typeof value === 'string' ? value : '';
         }
         return parsed.toISOString().slice(0, 10);
+    };
+
+    const convertDateInputToISO = (value) => {
+        if (!value) return null;
+        const normalized = value.includes('T') ? value : `${value}T00:00:00Z`;
+        const parsed = new Date(normalized);
+        if (Number.isNaN(parsed.getTime())) {
+            return null;
+        }
+        return parsed.toISOString();
+    };
+
+    const toInputString = (value) => (value === null || value === undefined ? '' : String(value));
+
+    const parseOptionalNumber = (value) => {
+        const trimmed = value === null || value === undefined ? '' : String(value).trim();
+        if (!trimmed) return undefined;
+        const parsed = Number(trimmed);
+        return Number.isNaN(parsed) ? undefined : parsed;
     };
 
     const handleSubscriptionPlanFilterChange = (value) => {
@@ -590,24 +832,19 @@ const SuperAdmin = () => {
     const closeSubscriptionModal = () => {
         setSubscriptionModalOpen(false);
         setSubscriptionActionLoading(false);
-        setSubscriptionForm({
-            email: '',
-            planName: '',
-            duration: 'Monthly',
-            expiresAt: ''
-        });
+        setSubscriptionForm(createDefaultSubscriptionForm());
         setSelectedSubscriptionRecord(null);
+        setSubscriptionNote('');
     };
 
     const openCreateSubscriptionModal = () => {
         setSubscriptionModalMode('create');
         setSubscriptionForm({
-            email: '',
-            planName: '',
-            duration: 'Monthly',
-            expiresAt: ''
+            ...createDefaultSubscriptionForm(),
+            planName: 'Basic'
         });
         setSelectedSubscriptionRecord(null);
+        setSubscriptionNote('');
         setSubscriptionModalOpen(true);
     };
 
@@ -615,41 +852,123 @@ const SuperAdmin = () => {
         if (!record) return;
         setSubscriptionModalMode('edit');
         setSelectedSubscriptionRecord(record);
+        const raw = record.raw || {};
         setSubscriptionForm({
+            ...createDefaultSubscriptionForm(),
             email: record.email || '',
-            planName: record.planName || '',
+            planName: record.planName || 'Basic',
             duration: record.duration === 'N/A' ? 'Monthly' : record.duration,
-            expiresAt: formatDateForInput(record.expiresAtRaw || record.expiresAt)
+            expiresAt: formatDateForInput(record.expiresAtRaw || record.expiresAt),
+            maxEditors: toInputString(raw.maxEditors ?? raw.max_editors),
+            maxViewers: toInputString(raw.maxViewers ?? raw.max_viewers),
+            maxRFPProposalGenerations: toInputString(raw.maxRFPProposalGenerations ?? raw.max_rfp_proposal_generations),
+            maxGrantProposalGenerations: toInputString(raw.maxGrantProposalGenerations ?? raw.max_grant_proposal_generations)
         });
         setSubscriptionModalOpen(true);
+        setSubscriptionNote('');
     };
 
     const handleSubscriptionSubmit = async () => {
-        const { email, planName, duration } = subscriptionForm;
+        const trimmedEmail = (subscriptionForm.email || '').trim();
+        const planName = (subscriptionForm.planName || '').trim();
+        const type = (subscriptionForm.duration || '').trim();
 
-        if (!email || !planName) {
-            toast.warning('Email and plan type are required');
+        if (!trimmedEmail || !planName || !type) {
+            toast.warning('Email, plan name and type are required');
             return;
         }
 
+        // const expiresAtIso = convertDateInputToISO(subscriptionForm.expiresAt);
+        const note = subscriptionNote.trim();
+
+        const payload = {
+            userEmail: trimmedEmail,
+            planName,
+            type,
+            note: note || ""
+        };
+
+        if (subscriptionModalMode === 'edit') {
+            const maxEditors = parseOptionalNumber(subscriptionForm.maxEditors);
+            const maxViewers = parseOptionalNumber(subscriptionForm.maxViewers);
+            const maxRfp = parseOptionalNumber(subscriptionForm.maxRFPProposalGenerations);
+            const maxGrant = parseOptionalNumber(subscriptionForm.maxGrantProposalGenerations);
+
+            if (maxEditors !== undefined) {
+                payload.maxEditors = maxEditors;
+            }
+            if (maxViewers !== undefined) {
+                payload.maxViewers = maxViewers;
+            }
+            if (maxRfp !== undefined) {
+                payload.maxRFPProposalGenerations = maxRfp;
+            }
+            if (maxGrant !== undefined) {
+                payload.maxGrantProposalGenerations = maxGrant;
+            }
+        }
+
         setSubscriptionActionLoading(true);
+        const url = subscriptionModalMode === 'create' ? `${baseUrl}/admin/assignSubscription` : `${baseUrl}/admin/updateUserSubscription`;
         try {
-            // Placeholder for future API integration
-            toast.info('Subscription workflow will be connected once backend endpoint is available.');
-            closeSubscriptionModal();
+            const response = await axios.post(url, payload, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`
+                }
+            });
+            if (response.status === 200) {
+                toast.success(`Subscription plan ${subscriptionModalMode === 'create' ? 'assigned' : 'updated'} successfully`);
+                await fetchAllSubscriptions();
+                closeSubscriptionModal();
+            } else {
+                toast.error(`Failed to ${subscriptionModalMode === 'create' ? 'assign' : 'update'} subscription plan. Please try again.`);
+            }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to process subscription action');
+            console.error(`Failed to ${subscriptionModalMode === 'create' ? 'assign' : 'update'} subscription plan:`, error);
+            toast.error(`Failed to ${subscriptionModalMode === 'create' ? 'assign' : 'update'} subscription plan. Please try again.`);
         } finally {
             setSubscriptionActionLoading(false);
         }
     };
 
-    const handleSubscriptionReset = () => {
-        toast.info('Reset plan workflow will be connected once backend endpoint is ready.');
-    };
+    const handleSubscriptionDeactivate = async (record, noteValue = subscriptionNote) => {
+        if (!record) return;
+        if (!record.isActive) {
+            Swal.fire({
+                title: 'This plan is already inactive.',
+                icon: 'info',
+                timer: 1500,
+                showConfirmButton: false,
+                showCancelButton: false,
+            });
+            return;
+        }
 
-    const handleSubscriptionDeactivate = () => {
-        toast.info('Deactivate plan workflow will be connected once backend endpoint is ready.');
+        const finalNote = (noteValue || '').trim();
+
+        setSubscriptionActionLoading(true);
+        try {
+            const response = await axios.post(`${baseUrl}/admin/deactivateSubscription`, {
+                userEmail: record.email,
+                note: finalNote
+            }, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`
+                }
+            });
+            if (response.status === 200) {
+                toast.success('Subscription plan deactivated successfully');
+                await fetchAllSubscriptions();
+                closeSubscriptionModal();
+            } else {
+                toast.error('Failed to deactivate subscription plan. Please try again.');
+            }
+        } catch (error) {
+            console.error('Failed to deactivate subscription:', error);
+            toast.error('Failed to deactivate subscription plan. Please try again.');
+        } finally {
+            setSubscriptionActionLoading(false);
+        }
     };
 
     // Export helpers
@@ -1204,6 +1523,10 @@ const SuperAdmin = () => {
             const duration = getDurationLabel(subscription.start_date, subscription.end_date);
             const expiresAtRaw = subscription.end_date;
 
+            const now = Date.now();
+            const expiresTimestamp = expiresAtRaw ? new Date(expiresAtRaw).getTime() : null;
+            const isActive = !subscription.canceled_at && expiresTimestamp && expiresTimestamp >= now;
+
             return {
                 id: subscription._id,
                 companyName: subscription.companyName || 'N/A',
@@ -1212,10 +1535,13 @@ const SuperAdmin = () => {
                 duration,
                 expiresAt: formatSubscriptionExpiry(expiresAtRaw),
                 expiresAtRaw,
+                status: isActive ? 'Active' : 'Inactive',
+                isActive,
                 autoRenewal: subscription.auto_renewal,
                 renewalDate: subscription.renewal_date,
                 startDate: subscription.start_date,
                 planPrice: subscription.plan_price,
+                canceledAt: subscription.canceled_at,
                 raw: subscription
             };
         });
@@ -1241,19 +1567,94 @@ const SuperAdmin = () => {
         return Array.from(set).sort();
     }, [subscriptionRows]);
 
-    const availablePlanOptions = useMemo(() => {
-        const planList = Array.isArray(plans?.plans) ? plans.plans : [];
-        const planNames = planList.map(plan => plan.name).filter(Boolean);
-        const combined = new Set([...planNames, ...subscriptionPlanOptions]);
-        const values = Array.from(combined);
-        return values.length > 0 ? values : ['Basic', 'Pro', 'Enterprise'];
-    }, [plans, subscriptionPlanOptions]);
+    useEffect(() => {
+        setSelectedSubscriptions(prev => {
+            if (prev.size === 0) return prev;
+            const activeIds = new Set(subscriptionRows.filter(row => row.isActive).map(row => row.id));
+            let changed = false;
+            const next = new Set();
+            prev.forEach(id => {
+                if (activeIds.has(id)) {
+                    next.add(id);
+                } else {
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
+    }, [subscriptionRows]);
 
-    const availableDurationOptions = useMemo(() => {
-        const defaults = ['Monthly', 'Yearly'];
-        const combined = new Set([...defaults, ...subscriptionDurationOptions.filter(Boolean)]);
-        return Array.from(combined);
-    }, [subscriptionDurationOptions]);
+    const toggleSubscriptionSelection = (record) => {
+        if (!record?.id || !record?.isActive) return;
+        setSelectedSubscriptions(prev => {
+            const next = new Set(prev);
+            if (next.has(record.id)) {
+                next.delete(record.id);
+            } else {
+                next.add(record.id);
+            }
+            return next;
+        });
+    };
+
+    const handleBulkDeactivate = async () => {
+        if (selectedSubscriptions.size === 0) {
+            toast.info('Select at least one subscription to deactivate.');
+            return;
+        }
+
+        const selectedRecords = subscriptionRows.filter(row => row.isActive && selectedSubscriptions.has(row.id));
+        if (selectedRecords.length === 0) {
+            toast.info('Only active plans can be bulk deactivated.');
+            return;
+        }
+
+        const result = await Swal.fire({
+            title: `Deactivate ${selectedRecords.length} subscription${selectedRecords.length > 1 ? 's' : ''}?`,
+            text: 'All selected plans will be deactivated immediately and emails will be sent to each organization owner.',
+            icon: 'warning',
+            input: 'textarea',
+            inputLabel: 'Optional note for the notification emails',
+            inputPlaceholder: 'Enter a reason (shared with each organization owner)',
+            inputValue: bulkActionNote,
+            inputAttributes: {
+                'aria-label': 'Enter a reason for bulk deactivation'
+            },
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Yes, deactivate',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (!result.isConfirmed) return;
+
+        const note = (result.value || '').trim();
+
+        setBulkProcessing(true);
+        try {
+            const response = await axios.post(`${baseUrl}/admin/bulkDeactivateSubscriptions`, {
+                userEmails: selectedRecords.map(row => row.email),
+                note: note || ""
+            }, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`
+                }
+            });
+            if (response.status === 200) {
+                toast.success(`Subscription plan deactivated successfully for ${selectedRecords.length} account(s).`);
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                toast.error('Failed to deactivate subscription plan. Please try again.');
+            }
+        } catch (error) {
+            console.error('Failed to deactivate subscription plan:', error);
+            toast.error('Failed to deactivate subscription plan. Please try again.');
+        } finally {
+            setBulkProcessing(false);
+        }
+    };
 
     useEffect(() => {
         let result = subscriptionRows;
@@ -1432,8 +1833,8 @@ const SuperAdmin = () => {
 
             {/* Search and Filter Bar */}
             <div className="mb-6 py-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full">
+                <div className="flex flex-col gap-3 xs:gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:flex-1">
                         <div className="relative">
                             <MdOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9CA3AF] w-5 h-5" />
                             <input
@@ -1444,7 +1845,7 @@ const SuperAdmin = () => {
                                     setSearchTerm(e.target.value);
                                     closeAllInvoiceRows();
                                 }}
-                                className="pl-10 pr-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent w-[100%] sm:w-[530px] md:max-w-[480px] lg:min-w-[530px] lg:max-w-[530px] text-[#374151] placeholder-[#9CA3AF] bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="pl-10 pr-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent w-full sm:w-[530px] md:max-w-[480px] lg:min-w-[530px] lg:max-w-[530px] text-[#374151] placeholder-[#9CA3AF] bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Search users by name or email"
                             />
                         </div>
@@ -1513,7 +1914,7 @@ const SuperAdmin = () => {
                             )}
                         </div>
                     </div>
-                    <div className="flex items-center justify-center sm:justify-end">
+                    <div className="flex flex-col gap-3 xs:flex-row xs:items-center xs:gap-3 sm:flex-row sm:items-center sm:gap-3 lg:justify-end">
                         <button
                             onClick={handleExportUsers}
                             className="flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white rounded-lg transition-colors w-full sm:w-auto"
@@ -1688,8 +2089,8 @@ const SuperAdmin = () => {
 
             {/* Search and Filter Bar */}
             <div className="mb-6 py-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex flex-col gap-3 xs:gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:flex-1">
                         {/* Search */}
                         <div className="relative">
                             <MdOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9CA3AF] w-5 h-5" />
@@ -1701,7 +2102,7 @@ const SuperAdmin = () => {
                                     setTransactionSearchTerm(e.target.value);
                                     closeAllInvoiceRows();
                                 }}
-                                className="pl-10 pr-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#6C63FF] focus:border-transparent w-[100%] sm:w-[530px] md:max-w-[480px] lg:min-w-[530px] lg:max-w-[530px] text-[#374151] placeholder-[#9CA3AF] bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="pl-10 pr-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#6C63FF] focus:border-transparent w-full sm:w-[530px] md:max-w-[480px] lg:min-w-[530px] lg:max-w-[530px] text-[#374151] placeholder-[#9CA3AF] bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Search transactions by company name, email, or transaction ID"
                             />
                         </div>
@@ -1832,7 +2233,7 @@ const SuperAdmin = () => {
                     </div>
 
                     {/* Export Button */}
-                    <div className="flex items-center justify-center sm:justify-end">
+                    <div className="flex flex-col gap-3 xs:flex-row xs:items-center xs:gap-3 sm:flex-row sm:items-center sm:gap-3 lg:justify-end">
                         <button
                             onClick={handleExportTransactions}
                             className="flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white rounded-lg transition-colors w-full sm:w-auto"
@@ -1953,6 +2354,7 @@ const SuperAdmin = () => {
         </div>
     );
     const subPlan = async () => {
+        if (!isSuperAdmin) return;
         try {
             const data = await axios.get(`${baseUrl}/admin/getSubscriptionPlansData`, {
                 headers: {
@@ -1978,12 +2380,14 @@ const SuperAdmin = () => {
     };
 
     useEffect(() => {
+        if (!isSuperAdmin) return;
         subPlan();
-    }, []);
+    }, [isSuperAdmin]);
 
     useEffect(() => {
+        if (!isSuperAdmin) return;
         fetchAllSubscriptions();
-    }, [fetchAllSubscriptions]);
+    }, [fetchAllSubscriptions, isSuperAdmin]);
 
 
     const startEdit = (plan) => {
@@ -2701,14 +3105,35 @@ const SuperAdmin = () => {
     const renderSubscriptionManagement = () => {
         const source = filteredSubscriptions || [];
         const paginatedSubscriptions = paginateData(source, currentPageSubscriptions, rowsPerPageSubscriptions);
+        const selectedCount = selectedSubscriptions.size;
+        const selectableVisible = paginatedSubscriptions.filter(record => record.isActive);
+        const allVisibleSelected = selectableVisible.length > 0 && selectableVisible.every(record => selectedSubscriptions.has(record.id));
+        const toggleVisibleSelection = (checked) => {
+            setSelectedSubscriptions(prev => {
+                const next = new Set(prev);
+                selectableVisible.forEach(record => {
+                    if (!record?.id) return;
+                    if (checked) {
+                        next.add(record.id);
+                    } else {
+                        next.delete(record.id);
+                    }
+                });
+                return next;
+            });
+        };
+        const statusBadgeClass = (status) =>
+            status === 'Active'
+                ? 'bg-green-100 text-green-700 border border-green-200'
+                : 'bg-gray-100 text-gray-600 border border-gray-200';
 
         return (
             <div className="h-full">
                 <div className="mt-10 space-y-6">
                     <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6">
-                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                            <div className="flex flex-col lg:flex-row lg:items-center gap-4 w-full">
-                                <div className="relative flex-1 max-w-xl">
+                        <div className="flex flex-col gap-3 xs:gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap sm:gap-4 lg:flex-1">
+                                <div className="relative flex-1 min-w-[220px]">
                                     <MdOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9CA3AF] w-5 h-5" />
                                     <input
                                         type="text"
@@ -2723,9 +3148,9 @@ const SuperAdmin = () => {
                                     />
                                 </div>
 
-                                <div className="relative">
+                                <div className="relative md:w-auto w-full md:flex-shrink-0">
                                     <button
-                                        className="bg-white flex items-center justify-center space-x-2 px-4 py-2 border border-[#E5E7EB] rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+                                        className="bg-white flex items-center justify-center space-x-2 px-4 py-2 border border-[#E5E7EB] rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] w-full md:w-auto"
                                         onClick={() => setSubscriptionFilterModal(prev => !prev)}
                                         title="Filter subscriptions"
                                     >
@@ -2734,7 +3159,7 @@ const SuperAdmin = () => {
                                     </button>
 
                                     {subscriptionFilterModal && (
-                                        <div className="absolute top-12 right-0 w-72 bg-white rounded-lg shadow-lg p-4 flex flex-col gap-4 z-[1000] border border-[#E5E7EB]">
+                                        <div className="absolute top-12 left-0 md:left-auto md:right-0 w-72 bg-white rounded-lg shadow-lg p-4 flex flex-col gap-4 z-[1000] border border-[#E5E7EB]">
                                             <div className="flex items-center justify-between">
                                                 <span className="text-[14px] font-medium text-[#111827]">Filters</span>
                                                 <button
@@ -2796,25 +3221,21 @@ const SuperAdmin = () => {
                                                         />
                                                         <span>All</span>
                                                     </label>
-                                                    {subscriptionDurationOptions.length > 0 ? (
-                                                        subscriptionDurationOptions.map(option => (
-                                                            <label
-                                                                key={option}
-                                                                className="flex items-center space-x-2 text-sm text-[#4B5563] hover:bg-gray-50 p-2 rounded cursor-pointer"
-                                                            >
-                                                                <input
-                                                                    type="radio"
-                                                                    name="subscriptionDurationFilter"
-                                                                    value={option}
-                                                                    checked={subscriptionDurationFilter === option}
-                                                                    onChange={() => handleSubscriptionDurationFilterChange(option)}
-                                                                />
-                                                                <span>{option}</span>
-                                                            </label>
-                                                        ))
-                                                    ) : (
-                                                        <p className="text-sm text-[#9CA3AF]">No duration data found</p>
-                                                    )}
+                                                    {["Monthly", "Yearly"].map((option) => (
+                                                        <label
+                                                            key={option}
+                                                            className="flex items-center space-x-2 text-sm text-[#4B5563] hover:bg-gray-50 p-2 rounded cursor-pointer"
+                                                        >
+                                                            <input
+                                                                type="radio"
+                                                                name="subscriptionDurationFilter"
+                                                                value={option}
+                                                                checked={subscriptionDurationFilter === option}
+                                                                onChange={() => handleSubscriptionDurationFilterChange(option)}
+                                                            />
+                                                            <span>{option}</span>
+                                                        </label>
+                                                    ))}
                                                 </div>
                                             </div>
                                         </div>
@@ -2822,10 +3243,10 @@ const SuperAdmin = () => {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-end gap-3 w-full lg:w-auto">
+                            <div className="flex flex-col gap-3 xs:flex-row xs:items-center xs:gap-3 sm:flex-row sm:items-center sm:gap-3 lg:justify-end w-full lg:w-auto">
                                 <button
                                     onClick={openCreateSubscriptionModal}
-                                    className="flex items-center justify-center space-x-2 px-4 py-2 bg-white border border-[#6C63FF] text-[#6C63FF] rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+                                    className="flex items-center justify-center space-x-2 px-4 py-2 bg-white border border-[#6C63FF] text-[#6C63FF] rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto"
                                 >
                                     <div className="flex items-center space-x-2">
                                         <MdOutlineAdd className="w-5 h-5" />
@@ -2834,7 +3255,7 @@ const SuperAdmin = () => {
                                 </button>
                                 <button
                                     onClick={handleExportSubscriptions}
-                                    className="flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+                                    className="flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto"
                                 >
                                     <span className="text-[16px] font-medium">Export</span>
                                 </button>
@@ -2848,13 +3269,56 @@ const SuperAdmin = () => {
                                 <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#6C63FF]"></div>
                             </div>
                         ) : null}
+
+                        {selectedCount > 0 && (
+                            <div className="bg-[#EEF2FF] border border-[#C7D2FE] rounded-t-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                                <div>
+                                    <p className="text-[#1E3A8A] font-semibold">
+                                        {selectedCount} subscription{selectedCount > 1 ? 's' : ''} selected
+                                    </p>
+                                    <p className="text-sm text-[#1E3A8A] opacity-80">
+                                        Bulk deactivation happens instantly and the organization owner receives an email notification.
+                                    </p>
+                                </div>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
+                                    <textarea
+                                        className="w-full sm:w-64 px-3 py-2 border border-[#C7D2FE] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6C63FF] text-sm text-[#1E3A8A]"
+                                        rows={2}
+                                        placeholder="Optional note for the email notification"
+                                        value={bulkActionNote}
+                                        onChange={(e) => setBulkActionNote(e.target.value)}
+                                    />
+                                    <button
+                                        onClick={handleBulkDeactivate}
+                                        disabled={bulkProcessing}
+                                        className="px-4 py-2 bg-gradient-to-b from-[#EF4444] to-[#B91C1C] text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed min-w-[190px]"
+                                    >
+                                        {bulkProcessing ? 'Processing...' : `Deactivate ${selectedCount > 1 ? 'Selected Accounts' : 'Selected Account'}`}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         <table className="w-full rounded-2xl">
                             <thead className="bg-[#F8F8FF] border-b border-[#0000001A]">
                                 <tr>
-                                    <th className="p-4 text-left text-[16px] font-medium text-[#4B5563] w-1/3">Company Name</th>
+                                    <th className="p-4 w-12">
+                                        <div className="flex items-center justify-center">
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 text-[#6C63FF] border-[#6C63FF] rounded focus:ring-[#6C63FF]"
+                                                checked={selectableVisible.length > 0 && allVisibleSelected}
+                                                disabled={selectableVisible.length === 0}
+                                                onChange={(e) => toggleVisibleSelection(e.target.checked)}
+                                                aria-label="Select all visible active subscriptions"
+                                            />
+                                        </div>
+                                    </th>
+                                    <th className="p-4 text-left text-[16px] font-medium text-[#4B5563] w-1/3">Company</th>
                                     <th className="p-4 text-left text-[16px] font-medium text-[#4B5563] w-1/3">Plan Type & Duration</th>
-                                    <th className="p-4 text-left text-[16px] font-medium text-[#4B5563] w-1/4">Expires On</th>
-                                    <th className="p-4 text-left text-[16px] font-medium text-[#4B5563] w-1/6 text-center">Action</th>
+                                    <th className="p-4 text-left text-[16px] font-medium text-[#4B5563] w-1/5 text-center">Status</th>
+                                    <th className="p-4 text-left text-[16px] font-medium text-[#4B5563] w-1/5">Expires On</th>
+                                    <th className="p-4 text-left text-[16px] font-medium text-[#4B5563] w-[140px] text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -2866,6 +3330,17 @@ const SuperAdmin = () => {
 
                                         return (
                                             <tr key={record.id || index} className="hover:bg-[#F8FAFC] transition-colors">
+                                                <td className="p-4 text-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="w-4 h-4 text-[#6C63FF] border-[#6C63FF] rounded focus:ring-[#6C63FF] disabled:opacity-40 disabled:cursor-not-allowed"
+                                                        checked={record.isActive && selectedSubscriptions.has(record.id)}
+                                                        disabled={!record.isActive}
+                                                        onChange={() => toggleSubscriptionSelection(record)}
+                                                        aria-label={`Select ${record.companyName}`}
+                                                        title={record.isActive ? 'Select for bulk actions' : 'Plan already inactive'}
+                                                    />
+                                                </td>
                                                 <td className="p-4 whitespace-nowrap text-[16px] font-medium text-[#4B5563]">
                                                     <div className="flex flex-col">
                                                         <span>{record.companyName}</span>
@@ -2881,23 +3356,44 @@ const SuperAdmin = () => {
                                                     {combinedPlan}
                                                 </td>
                                                 <td className="p-4 whitespace-nowrap text-[16px] font-medium text-[#4B5563]">
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className={`inline-flex items-center justify-center px-3 py-1 text-xs font-semibold rounded-full ${statusBadgeClass(record.status)}`}>
+                                                            {record.status}
+                                                        </span>
+                                                        {/* <span className="text-xs text-[#6B7280]">
+                                                            {record.autoRenewal ? 'Auto-renews enabled' : 'Manual renewal'}
+                                                        </span> */}
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 whitespace-nowrap text-[16px] font-medium text-[#4B5563]">
                                                     {record.expiresAt}
                                                 </td>
-                                                <td className="p-4 whitespace-nowrap text-center">
-                                                    <button
-                                                        className="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-[#E5E7EB] bg-white transition-all duration-200 hover:bg-[#EEF2FF]"
-                                                        onClick={() => openEditSubscriptionModal(record)}
-                                                        title="Review subscription"
-                                                    >
-                                                        <MdOutlineEdit className="w-5 h-5 text-[#6C63FF]" />
-                                                    </button>
+                                                <td className="p-4 whitespace-nowrap">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <button
+                                                            className="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-[#E5E7EB] bg-white transition-all duration-200 hover:bg-[#EEF2FF]"
+                                                            onClick={() => openEditSubscriptionModal(record)}
+                                                            title="Assign or edit plan"
+                                                        >
+                                                            <MdOutlineEdit className="w-5 h-5 text-[#6C63FF]" />
+                                                        </button>
+                                                        {/* {record.isActive && (
+                                                            <button
+                                                                className="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-[#FCA5A5] bg-white transition-all duration-200 hover:bg-red-50"
+                                                                onClick={() => handleSubscriptionDeactivate(record)}
+                                                                title="Deactivate plan"
+                                                            >
+                                                                <MdOutlinePowerSettingsNew className="w-5 h-5 text-[#DC2626]" />
+                                                            </button>
+                                                        )} */}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan={4} className="px-6 py-8 text-center text-[16px] font-medium text-[#4B5563]">
+                                        <td colSpan={6} className="px-6 py-8 text-center text-[16px] font-medium text-[#4B5563]">
                                             {subscriptionsLoading ? 'Loading subscriptions...' : 'No subscriptions found'}
                                         </td>
                                     </tr>
@@ -3108,8 +3604,8 @@ const SuperAdmin = () => {
         <div className='h-full'>
             {/* Search Bar */}
             <div className="mb-6 py-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex flex-col gap-3 xs:gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:flex-1">
                         <div className="relative">
                             <MdOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9CA3AF] w-5 h-5" />
                             <input
@@ -3121,7 +3617,7 @@ const SuperAdmin = () => {
                                     setCurrentPageContact(1);
                                     closeAllInvoiceRows();
                                 }}
-                                className="pl-10 pr-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent w-[100%] sm:w-[530px] md:max-w-[480px] lg:min-w-[530px] lg:max-w-[530px] text-[#374151] placeholder-[#9CA3AF] bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="pl-10 pr-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent w-full sm:w-[530px] md:max-w-[480px] lg:min-w-[530px] lg:max-w-[530px] text-[#374151] placeholder-[#9CA3AF] bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Search contact requests by name, company, email, or status"
                             />
                         </div>
@@ -3267,8 +3763,8 @@ const SuperAdmin = () => {
         <div className="h-full">
             {/* Search Bar */}
             <div className="mb-6 py-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex flex-col gap-3 xs:gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:flex-1">
                         <div className="relative">
                             <MdOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9CA3AF] w-5 h-5" />
                             <input
@@ -3279,7 +3775,7 @@ const SuperAdmin = () => {
                                     setEmailContentSearchTerm(e.target.value);
                                     closeAllInvoiceRows();
                                 }}
-                                className="pl-10 pr-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent w-[100%] sm:w-[530px] md:max-w-[480px] lg:min-w-[530px] lg:max-w-[530px] text-[#374151] placeholder-[#9CA3AF] bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="pl-10 pr-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent w-full sm:w-[530px] md:max-w-[480px] lg:min-w-[530px] lg:max-w-[530px] text-[#374151] placeholder-[#9CA3AF] bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Search through all email content by typing keywords from subject, email type, or body. Press Enter or click search to filter results."
                             />
                         </div>
@@ -3637,8 +4133,8 @@ const SuperAdmin = () => {
 
             {/* Search and Filter Bar */}
             <div className="mb-6 py-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex flex-col gap-3 xs:gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:flex-1">
                         <div className="relative">
                             <MdOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9CA3AF] w-5 h-5" />
                             <input
@@ -3649,7 +4145,7 @@ const SuperAdmin = () => {
                                     setSupportSearchTerm(e.target.value);
                                     closeAllInvoiceRows();
                                 }}
-                                className="pl-10 pr-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent w-[100%] sm:w-[530px] md:max-w-[480px] lg:min-w-[530px] lg:max-w-[530px] text-[#374151] placeholder-[#9CA3AF] bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="pl-10 pr-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent w-full sm:w-[530px] md:max-w-[480px] lg:min-w-[530px] lg:max-w-[530px] text-[#374151] placeholder-[#9CA3AF] bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Search support tickets by subject, description, or category"
                             />
                         </div>
@@ -4076,23 +4572,25 @@ const SuperAdmin = () => {
             <div className="h-full">
                 {/* Filters and Search */}
                 <div className="pb-4 mb-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="relative w-[540px]">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <MdOutlineSearch className="h-4 w-4 text-[#4B5563]" />
+                    <div className="flex flex-col gap-3 xs:gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex flex-col gap-3 lg:flex-1">
+                            <div className="relative w-full sm:max-w-[540px]">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <MdOutlineSearch className="h-4 w-4 text-[#4B5563]" />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="Search notifications..."
+                                    value={notificationSearchTerm}
+                                    onChange={(e) => {
+                                        setNotificationSearchTerm(e.target.value);
+                                    }}
+                                    className="block w-full pl-10 pr-3 py-2 border border-[#4B5563] rounded-lg leading-5 bg-white placeholder-[#4B5563] focus:outline-none focus:placeholder-[#4B5563] focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Search notifications by title or message"
+                                />
                             </div>
-                            <input
-                                type="text"
-                                placeholder="Search notifications..."
-                                value={notificationSearchTerm}
-                                onChange={(e) => {
-                                    setNotificationSearchTerm(e.target.value);
-                                }}
-                                className="block w-full pl-10 pr-3 py-2 border border-[#4B5563] rounded-lg leading-5 bg-white placeholder-[#4B5563] focus:outline-none focus:placeholder-[#4B5563] focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Search notifications by title or message"
-                            />
                         </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div className="flex flex-col gap-3 xs:flex-row xs:items-center xs:gap-3 sm:flex-row sm:items-center sm:gap-4 lg:justify-end">
                             <div className="relative notification-filter-modal">
                                 <button className="flex items-center justify-center space-x-2 px-3 py-2 text-sm text-[#111827] bg-white border border-[#4B5563] rounded-lg hover:bg-[#4B5563] hover:text-white transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto"
                                     onClick={() => setNotificationTimeFilterModal(!notificationTimeFilterModal)}
@@ -5141,158 +5639,6 @@ const SuperAdmin = () => {
         }
     };
 
-    // Inline Invoice Modal Component
-    const SubscriptionManagementModal = ({
-        isOpen,
-        mode,
-        form,
-        onChange,
-        onClose,
-        onSubmit,
-        onReset,
-        onDeactivate,
-        loading,
-        planOptions,
-        durationOptions,
-        record
-    }) => {
-        if (!isOpen) return null;
-
-        const actionLabel = mode === 'create' ? 'Activate Plan' : 'Save Changes';
-
-        return (
-            <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/40 px-4">
-                <div className="bg-white rounded-2xl w-full max-w-xl p-6 space-y-6 shadow-xl">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-semibold text-[#111827]">
-                            {mode === 'create' ? 'Activate Subscription Plan' : 'Update Subscription Plan'}
-                        </h3>
-                        <button
-                            onClick={onClose}
-                            className="p-2 rounded-full hover:bg-gray-100 text-[#4B5563]"
-                        >
-                            <MdOutlineClose className="w-5 h-5" />
-                        </button>
-                    </div>
-
-                    {mode === 'edit' && record ? (
-                        <div className="bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg p-4 text-sm text-[#4B5563] space-y-2">
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                                <span><span className="font-medium">Company:</span> {record.companyName}</span>
-                                {record.raw?.userName && (
-                                    <span><span className="font-medium">Contact:</span> {record.raw.userName}</span>
-                                )}
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                <span><span className="font-medium">Start:</span> {formatSubscriptionExpiry(record.startDate)}</span>
-                                <span><span className="font-medium">Renewal:</span> {formatSubscriptionExpiry(record.renewalDate)}</span>
-                                <span><span className="font-medium">Expires:</span> {record.expiresAt}</span>
-                            </div>
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                                <span><span className="font-medium">Auto Renewal:</span> {record.autoRenewal ? 'Yes' : 'No'}</span>
-                                <span><span className="font-medium">Current Usage:</span> {`${record.raw?.current_rfp_proposal_generations ?? 0}/${record.raw?.max_rfp_proposal_generations ?? 0} RFP • ${record.raw?.current_grant_proposal_generations ?? 0}/${record.raw?.max_grant_proposal_generations ?? 0} Grant`}</span>
-                            </div>
-                        </div>
-                    ) : null}
-
-                    <div className="space-y-4">
-                        <div className="flex flex-col">
-                            <label className="text-sm font-medium text-[#4B5563] mb-1">Email ID</label>
-                            <input
-                                type="email"
-                                value={form.email}
-                                onChange={(e) => onChange('email', e.target.value)}
-                                placeholder="company@example.com"
-                                className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
-                                disabled={loading}
-                            />
-                        </div>
-
-                        <div className="flex flex-col">
-                            <label className="text-sm font-medium text-[#4B5563] mb-1">Plan Type</label>
-                            <select
-                                value={form.planName}
-                                onChange={(e) => onChange('planName', e.target.value)}
-                                className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
-                                disabled={loading}
-                            >
-                                <option value="">Select plan</option>
-                                {planOptions.map(option => (
-                                    <option key={option} value={option}>{option}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="flex flex-col">
-                            <label className="text-sm font-medium text-[#4B5563] mb-1">Plan Duration</label>
-                            <select
-                                value={form.duration}
-                                onChange={(e) => onChange('duration', e.target.value)}
-                                className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
-                                disabled={loading}
-                            >
-                                {durationOptions.map(option => (
-                                    <option key={option} value={option}>{option}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="flex flex-col">
-                            <label className="text-sm font-medium text-[#4B5563] mb-1">Expiry Date (optional)</label>
-                            <input
-                                type="date"
-                                value={form.expiresAt || ''}
-                                onChange={(e) => onChange('expiresAt', e.target.value)}
-                                className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
-                                disabled={loading}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        {mode === 'edit' ? (
-                            <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <button
-                                    onClick={onReset}
-                                    className="flex-1 sm:flex-none px-4 py-2 border border-[#E5E7EB] text-[#4B5563] rounded-lg hover:bg-gray-50 transition"
-                                    disabled={loading}
-                                >
-                                    Reset Plan
-                                </button>
-                                <button
-                                    onClick={onDeactivate}
-                                    className="flex-1 sm:flex-none px-4 py-2 border border-[#FCA5A5] text-[#B91C1C] rounded-lg hover:bg-red-50 transition"
-                                    disabled={loading}
-                                >
-                                    Deactivate
-                                </button>
-                            </div>
-                        ) : (
-                            <span className="text-sm text-[#6B7280]">Enter customer email and select plan to activate manually.</span>
-                        )}
-
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <button
-                                onClick={onClose}
-                                className="flex-1 sm:flex-none px-4 py-2 border border-[#E5E7EB] text-[#4B5563] rounded-lg hover:bg-gray-50 transition"
-                                disabled={loading}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={onSubmit}
-                                className="flex-1 sm:flex-none px-4 py-2 bg-gradient-to-r from-[#6C63FF] to-[#3F73BD] text-white rounded-lg shadow-md hover:shadow-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
-                                disabled={loading}
-                            >
-                                {loading ? 'Processing...' : actionLabel}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
     const InlineInvoiceModal = ({ data, isOpen, onClose }) => {
         if (!isOpen || !data) return null;
 
@@ -5377,6 +5723,10 @@ const SuperAdmin = () => {
         );
     };
 
+    if (role && !isSuperAdmin) {
+        return <Navigate to="/unauthorized" replace />;
+    }
+
     if (loading) {
         return <div className="flex justify-center items-center h-screen">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -5397,12 +5747,12 @@ const SuperAdmin = () => {
                 onChange={handleSubscriptionFormChange}
                 onClose={closeSubscriptionModal}
                 onSubmit={handleSubscriptionSubmit}
-                onReset={handleSubscriptionReset}
-                onDeactivate={handleSubscriptionDeactivate}
+                onDeactivate={(noteValue) => handleSubscriptionDeactivate(selectedSubscriptionRecord, noteValue)}
                 loading={subscriptionActionLoading}
-                planOptions={availablePlanOptions}
-                durationOptions={availableDurationOptions}
+                note={subscriptionNote}
+                onNoteChange={setSubscriptionNote}
                 record={selectedSubscriptionRecord}
+                formatSubscriptionExpiry={formatSubscriptionExpiry}
             />
 
 
