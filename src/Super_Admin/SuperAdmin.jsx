@@ -379,6 +379,12 @@ const SuperAdmin = () => {
 
     const baseUrl = `${import.meta.env.VITE_API_BASE_URL}`;
 
+    // Safely render potentially non-primitive values in JSX
+    const safeText = (value) => {
+        if (value === null || value === undefined) return '—';
+        return typeof value === 'object' ? JSON.stringify(value) : String(value);
+    };
+
     // Email Content Management state
     const [emailContentData, setEmailContentData] = useState([]);
     const [emailContentSearchTerm, setEmailContentSearchTerm] = useState('');
@@ -706,6 +712,12 @@ const SuperAdmin = () => {
                 }
             });
             const list = Array.isArray(response.data) ? response.data : [];
+            //sort list by active users first and then by inactive users
+            list.sort((a, b) => {
+                if (a.active && !b.active) return -1;
+                if (!a.active && b.active) return 1;
+                return 0;
+            });
             setSubscriptionsData(list);
         } catch (error) {
             console.error('Failed to fetch subscriptions:', error);
@@ -4093,7 +4105,7 @@ const SuperAdmin = () => {
                             <div>
                                 <h2 className="pl-6 pt-6 text-white text-lg w-full">{key}</h2>
                                 <p className="pl-6 text-white text-4xl font-bold mt-2">
-                                    {currentStats[key]}
+                                    {safeText(currentStats[key])}
                                 </p>
                             </div>
 
@@ -5826,7 +5838,7 @@ const SuperAdmin = () => {
                                     }}
                                 >
                                     <LuCrown className="w-4 h-4" />
-                                    <span className="text-[16px] font-medium">Plan Management</span>
+                                    <span className="text-[16px] font-medium">Plans & Subscriptions</span>
                                 </button>
 
                                 {/* Contact Request */}
@@ -5972,7 +5984,7 @@ const SuperAdmin = () => {
                                 >
                                     <LuCrown className="w-5 h-5 flex-shrink-0" />
                                     <span className="text-[16px] font-medium lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300">
-                                        Plan Management
+                                        Plans & Subscriptions
                                     </span>
                                 </button>
 
