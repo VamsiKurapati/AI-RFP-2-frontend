@@ -1986,7 +1986,7 @@ const CompanyProfileDashboard = () => {
               </div>
               <div>
                 <h3 className="text-[24px] font-semibold mb-2">Company Profile</h3>
-                <p className="text-[#4B5563] text-[16px] mb-4">{companyData?.profile?.bio || 'Loading...'}</p>
+                <p className="text-[#4B5563] text-[16px] mb-4 break-words">{companyData?.profile?.bio || 'Loading...'}</p>
                 <h3 className="font-medium text-[#111827] text-[16px] mb-2">Services</h3>
                 <ul className="columns-1 xs:columns-2 lg:columns-3 gap-4 list-disc gap-2 mt-2 ml-8">
                   {companyData?.profile?.services && companyData.profile.services.length > 0 ? (

@@ -198,14 +198,14 @@ export default function HomePage() {
               />
             </div>
             <div className="flex gap-4 mt-6">
-              <button 
+              <button
                 className="bg-[#2563EB] px-3 sm:px-6 py-2 rounded-lg text-[16px] text-[#FFFFFF] font-regular hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
                 onClick={() => navigate("/login")}
                 title="Get started with RFP2Grant"
               >
                 Get Started
               </button>
-              <button 
+              <button
                 className="border border-1 border-[#00000033] px-3 sm:px-6 py-2 rounded-lg flex items-center gap-2 text-[16px] text-[#000000] font-regular hover:bg-gray-100 transition-all duration-200"
                 onClick={() => handleContactClick()}
                 title="Watch a demonstration of the platform"
@@ -360,7 +360,7 @@ export default function HomePage() {
                 <>
                   <div className="flex items-center justify-center gap-2 mb-6">
                     <button
-                      className={`text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] ${isMonthly[idx]
+                      className={`text-sm font-medium transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] ${isMonthly[idx]
                         ? "bg-[#2563EB] text-white px-4 py-2 rounded-lg"
                         : "text-[#2563EB]"
                         }`}
@@ -370,7 +370,7 @@ export default function HomePage() {
                       Monthly
                     </button>
                     <button
-                      className={`text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] ${!isMonthly[idx]
+                      className={`text-sm font-medium transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] ${!isMonthly[idx]
                         ? "bg-[#2563EB] text-white px-4 py-2 rounded-lg"
                         : "text-[#2563EB]"
                         }`}
@@ -389,8 +389,8 @@ export default function HomePage() {
                   ? "bg-white text-blue-600 border-2 border-blue-600 hover:bg-blue-50"
                   : "bg-blue-600 text-white hover:bg-blue-700"
                   }`}
-                onClick={() => (plan.name === "Enterprise" && !plan.isContact) ? handleContactClick() : navigate("/sign_up")}
-                title={plan.name === "Enterprise" && !plan.isContact ? "Contact us for Enterprise plan" : `Get started with ${plan.name} plan`}
+                onClick={() => (plan.name === "Enterprise" && plan.isContact) ? handleContactClick() : navigate("/sign_up")}
+                title={plan.name === "Enterprise" && plan.isContact ? "Contact us for Enterprise plan" : `Get started with ${plan.name} plan`}
               >
                 {plan.button}
               </button>
