@@ -90,7 +90,17 @@ const LoginPage = () => {
         localStorage.setItem("subscription", JSON.stringify(subscription));
         setRole(role === "SuperAdmin" ? "SuperAdmin" : role === "company" ? "company" : res.data.user.accessLevel || "Viewer");
         localStorage.setItem("userRole", role === "SuperAdmin" ? "SuperAdmin" : role === "company" ? "company" : res.data.user.accessLevel || "Viewer");
-        role === "SuperAdmin" ? navigate("/admin") : navigate("/dashboard");
+
+        // Check if there's a saved redirect location
+        const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+        if (redirectPath) {
+          sessionStorage.removeItem('redirectAfterLogin');
+          navigate(redirectPath);
+        } else {
+          // Default navigation based on role
+          role === "SuperAdmin" ? navigate("/admin") : navigate("/dashboard");
+        }
+
         setIsTokenValid(true);
         verifyAndSchedule();
       } else {

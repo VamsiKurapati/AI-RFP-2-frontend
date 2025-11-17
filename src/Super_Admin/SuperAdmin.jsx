@@ -268,6 +268,7 @@ const SuperAdmin = () => {
         // Load activeTab from URL hash or default to 'user-management'
         return window.location.hash.slice(1) ? window.location.hash.slice(1) : 'user-management';
     });
+    const [previousTab, setPreviousTab] = useState('user-management');
     // Search Terms
     const [searchTerm, setSearchTerm] = useState('');
     const [transactionSearchTerm, setTransactionSearchTerm] = useState('');
@@ -1701,6 +1702,22 @@ const SuperAdmin = () => {
             setSubscriptionFilterModal(false);
         }
     }, [planManagementInnerTab]);
+
+    // Add-Ons management state
+    const [addOns, setAddOns] = useState([]);
+    const [addOnsLoading, setAddOnsLoading] = useState(false);
+    const [addOnModalOpen, setAddOnModalOpen] = useState(false);
+    const [addOnModalMode, setAddOnModalMode] = useState('create'); // 'create' or 'edit'
+    const [selectedAddOn, setSelectedAddOn] = useState(null);
+    const [addOnForm, setAddOnForm] = useState({
+        name: '',
+        description: '',
+        type: '',
+        quantity: '',
+        price: '',
+        popular: false
+    });
+    const addOnTypes = ["RFP Proposals Generation", "Grant Proposal Generations", "RFP + Grant Proposal Generations"];
 
     useEffect(() => {
         if (activeTab !== 'plan-management') {
@@ -3434,6 +3451,422 @@ const SuperAdmin = () => {
         );
     };
 
+    // Fetch add-ons from backend
+    const fetchAddOns = async () => {
+        setAddOnsLoading(true);
+        try {
+            const response = await axios.get(
+                `${baseUrl}/getAddOnPlans`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                }
+            );
+            setAddOns(response.data || []);
+        } catch (error) {
+            console.error('Error fetching add-ons:', error);
+            Swal.fire({
+                title: "Failed to fetch add-ons",
+                icon: "error",
+                timer: 1500,
+                showConfirmButton: false,
+                showCancelButton: false,
+            });
+            setAddOns([]);
+        } finally {
+            setAddOnsLoading(false);
+        }
+    };
+
+    // Open create add-on modal
+    const openCreateAddOnModal = () => {
+        setAddOnModalMode('create');
+        setSelectedAddOn(null);
+        setAddOnForm({
+            name: '',
+            description: '',
+            type: '',
+            quantity: '',
+            price: '',
+            popular: false
+        });
+        setAddOnModalOpen(true);
+    };
+
+    // Open edit add-on modal
+    const openEditAddOnModal = (addOn) => {
+        setAddOnModalMode('edit');
+        setSelectedAddOn(addOn);
+        setAddOnForm({
+            name: addOn.name || addOn.title || '',
+            description: addOn.description || '',
+            type: addOn.type || '',
+            quantity: addOn.quantity || '',
+            price: addOn.price || addOn.monthlyPrice || '',
+            popular: addOn.popular || false
+        });
+        setAddOnModalOpen(true);
+    };
+
+    // Close add-on modal
+    const closeAddOnModal = () => {
+        setAddOnModalOpen(false);
+        setSelectedAddOn(null);
+        setAddOnForm({
+            name: '',
+            description: '',
+            type: '',
+            quantity: '',
+            price: '',
+            popular: false
+        });
+    };
+
+    // Handle add-on form submission
+    const handleAddOnSubmit = async () => {
+        if (!addOnForm.name.trim() || !addOnForm.type || !addOnForm.quantity || !addOnForm.price) {
+            Swal.fire({
+                title: "Please fill in all required fields",
+                icon: "warning",
+                timer: 1500,
+                showConfirmButton: false,
+                showCancelButton: false,
+            });
+            return;
+        }
+
+        if (parseInt(addOnForm.quantity) <= 0) {
+            Swal.fire({
+                title: "Quantity must be greater than 0",
+                icon: "warning",
+                timer: 1500,
+                showConfirmButton: false,
+                showCancelButton: false,
+            });
+            return;
+        }
+
+        setAddOnsLoading(true);
+        try {
+            const payload = {
+                name: addOnForm.name.trim(),
+                description: addOnForm.description.trim(),
+                type: addOnForm.type,
+                quantity: parseInt(addOnForm.quantity),
+                price: parseFloat(addOnForm.price),
+                popular: addOnForm.popular
+            };
+
+            if (addOnModalMode === 'create') {
+                await axios.post(
+                    `${baseUrl}/admin/createAddOnPlan`,
+                    payload,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem("token")}`,
+                        },
+                    }
+                );
+                toast.success('Add-on created successfully');
+            } else {
+                await axios.put(
+                    `${baseUrl}/admin/updateAddOnPlan/${selectedAddOn._id}`,
+                    payload,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem("token")}`,
+                        },
+                    }
+                );
+                toast.success('Add-on updated successfully');
+            }
+
+            await fetchAddOns();
+            closeAddOnModal();
+        } catch (error) {
+            console.error('Error saving add-on:', error);
+            Swal.fire({
+                title: `Failed to ${addOnModalMode === 'create' ? 'create' : 'update'} add-on`,
+                text: error.response?.data?.message || error.message,
+                icon: "error",
+                timer: 2000,
+                showConfirmButton: false,
+                showCancelButton: false,
+            });
+        } finally {
+            setAddOnsLoading(false);
+        }
+    };
+
+    // Delete add-on
+    const handleDeleteAddOn = async (addOnId) => {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        });
+
+        if (result.isConfirmed) {
+            setAddOnsLoading(true);
+            try {
+                await axios.delete(
+                    `${baseUrl}/admin/deleteAddOnPlan/${addOnId}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem("token")}`,
+                        },
+                    }
+                );
+                toast.success('Add-on deleted successfully');
+                await fetchAddOns();
+            } catch (error) {
+                console.error('Error deleting add-on:', error);
+                Swal.fire({
+                    title: "Failed to delete add-on",
+                    text: error.response?.data?.message || error.message,
+                    icon: "error",
+                    timer: 2000,
+                    showConfirmButton: false,
+                    showCancelButton: false,
+                });
+            } finally {
+                setAddOnsLoading(false);
+            }
+        }
+    };
+
+    // Fetch add-ons when tab is active
+    useEffect(() => {
+        if (planManagementInnerTab === 'addons' && isSuperAdmin) {
+            fetchAddOns();
+        }
+    }, [planManagementInnerTab, isSuperAdmin]);
+
+    const renderAddOnsManagement = () => {
+        return (
+            <div className="h-full">
+                <div className="mt-10 space-y-6">
+                    <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6">
+                        <div className="flex flex-col gap-3 xs:gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap sm:gap-4 lg:flex-1">
+                                <h2 className="text-xl font-semibold text-[#111827]">Manage Add-Ons</h2>
+                            </div>
+
+                            <div className="flex flex-col gap-3 xs:flex-row xs:items-center xs:gap-3 sm:flex-row sm:items-center sm:gap-3 lg:justify-end w-full lg:w-auto">
+                                <button
+                                    onClick={openCreateAddOnModal}
+                                    className="flex items-center justify-center space-x-2 px-4 py-2 bg-white border border-[#6C63FF] text-[#6C63FF] rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <MdOutlineAdd className="w-5 h-5" />
+                                        <span className="text-[16px] font-medium">Create Add-On</span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white border border-[#E5E7EB] rounded-2xl overflow-x-auto">
+                        {addOnsLoading && addOns.length === 0 ? (
+                            <div className="p-8 flex justify-center">
+                                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#6C63FF]"></div>
+                            </div>
+                        ) : addOns.length === 0 ? (
+                            <div className="p-8 text-center text-[#4B5563]">
+                                <p className="text-lg">No add-ons found. Create your first add-on!</p>
+                            </div>
+                        ) : (
+                            <div className="p-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {addOns.map((addOn) => (
+                                        <div
+                                            key={addOn._id || addOn.id}
+                                            className={`border rounded-2xl p-6 shadow-md relative transition-transform hover:scale-105 flex flex-col ${addOn.popular ? "border-[#6C63FF]" : "border-gray-300"
+                                                }`}
+                                        >
+                                            {addOn.popular && (
+                                                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-[#6C63FF] to-[#8B7CF6] text-white text-xs px-3 py-1 rounded-full">
+                                                    Popular
+                                                </div>
+                                            )}
+
+                                            <h3 className="text-xl font-bold text-gray-900 mb-2">{addOn.name || addOn.title}</h3>
+                                            <div className="mb-4">
+                                                <span className="text-2xl font-bold text-gray-900">
+                                                    ${addOn.price || addOn.monthlyPrice || 0}
+                                                </span>
+                                            </div>
+
+                                            {addOn.description && (
+                                                <p className="text-gray-600 mb-4 text-sm">{addOn.description}</p>
+                                            )}
+
+                                            <div className="mb-4 flex-grow">
+                                                {addOn.type && (
+                                                    <div className="mb-2">
+                                                        <span className="text-sm font-medium text-gray-700">Type: </span>
+                                                        <span className="text-sm text-gray-600">{addOn.type}</span>
+                                                    </div>
+                                                )}
+                                                {addOn.quantity && (
+                                                    <div>
+                                                        <span className="text-sm font-medium text-gray-700">Quantity: </span>
+                                                        <span className="text-sm text-gray-600">{addOn.quantity}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex gap-2 mt-auto">
+                                                <button
+                                                    className="flex-1 py-2 rounded-lg bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white font-medium shadow transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+                                                    onClick={() => openEditAddOnModal(addOn)}
+                                                    title="Edit add-on"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    className="flex-1 py-2 rounded-lg bg-red-500 text-white font-medium shadow transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+                                                    onClick={() => handleDeleteAddOn(addOn._id || addOn.id)}
+                                                    title="Delete add-on"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Add-On Modal */}
+                {addOnModalOpen && (
+                    <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/40 p-4">
+                        <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
+                            <div className="flex items-center justify-between sticky top-0 bg-white px-6 pt-6 pb-4 border-b border-[#E5E7EB] z-10">
+                                <h3 className="text-xl font-semibold text-[#111827]">
+                                    {addOnModalMode === 'create' ? 'Create New Add-On' : 'Edit Add-On'}
+                                </h3>
+                                <button
+                                    onClick={closeAddOnModal}
+                                    className="p-2 rounded-full hover:bg-gray-100 text-[#4B5563]"
+                                >
+                                    <MdOutlineClose className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="px-6 pb-6 space-y-6 overflow-y-auto mt-4">
+                                <div className="flex flex-col">
+                                    <label className="text-sm font-medium text-[#4B5563] mb-1">Add-On Name *</label>
+                                    <input
+                                        type="text"
+                                        value={addOnForm.name}
+                                        onChange={(e) => setAddOnForm(prev => ({ ...prev, name: e.target.value }))}
+                                        placeholder="Enter add-on name"
+                                        className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                        disabled={addOnsLoading}
+                                    />
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-sm font-medium text-[#4B5563] mb-1">Description</label>
+                                    <textarea
+                                        value={addOnForm.description}
+                                        onChange={(e) => setAddOnForm(prev => ({ ...prev, description: e.target.value }))}
+                                        placeholder="Enter add-on description"
+                                        rows={3}
+                                        className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                        disabled={addOnsLoading}
+                                    />
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-sm font-medium text-[#4B5563] mb-1">Add-On Type *</label>
+                                    <select
+                                        value={addOnForm.type}
+                                        onChange={(e) => setAddOnForm(prev => ({ ...prev, type: e.target.value }))}
+                                        className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                        disabled={addOnsLoading}
+                                    >
+                                        <option value="">Select add-on type</option>
+                                        {addOnTypes.map((type) => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-sm font-medium text-[#4B5563] mb-1">Quantity *</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        value={addOnForm.quantity}
+                                        onChange={(e) => setAddOnForm(prev => ({ ...prev, quantity: e.target.value }))}
+                                        placeholder="Enter quantity (e.g., 50)"
+                                        className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                        disabled={addOnsLoading}
+                                    />
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-sm font-medium text-[#4B5563] mb-1">Price ($) *</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={addOnForm.price}
+                                        onChange={(e) => setAddOnForm(prev => ({ ...prev, price: e.target.value }))}
+                                        placeholder="Enter price"
+                                        className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                        disabled={addOnsLoading}
+                                    />
+                                </div>
+
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        id="popular"
+                                        checked={addOnForm.popular}
+                                        onChange={(e) => setAddOnForm(prev => ({ ...prev, popular: e.target.checked }))}
+                                        className="w-4 h-4 text-[#6C63FF] border-gray-300 rounded focus:ring-[#6C63FF]"
+                                        disabled={addOnsLoading}
+                                    />
+                                    <label htmlFor="popular" className="ml-2 text-sm font-medium text-[#4B5563]">
+                                        Mark as Popular
+                                    </label>
+                                </div>
+
+                                <div className="flex gap-2 pt-4">
+                                    <button
+                                        onClick={closeAddOnModal}
+                                        disabled={addOnsLoading}
+                                        className="flex-1 py-2 rounded-lg bg-gray-300 text-black font-medium shadow transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleAddOnSubmit}
+                                        disabled={addOnsLoading}
+                                        className="flex-1 py-2 rounded-lg bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white font-medium shadow transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {addOnsLoading ? 'Saving...' : (addOnModalMode === 'create' ? 'Create' : 'Update')}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     const renderPlanCards = () => (
         <div className="h-full">
 
@@ -3475,9 +3908,19 @@ const SuperAdmin = () => {
                 >
                     Subscription Management
                 </button>
+                <button
+                    onClick={() => { setPlanManagementInnerTab('addons') }}
+                    className={`py-2 px-3 border-b-2 font-medium text-[16px] transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${planManagementInnerTab === 'addons'
+                        ? 'border-[#6C63FF] text-[#FFFFFF] rounded-t-lg bg-[#2563EB]'
+                        : 'border-transparent text-[#4B5563]'
+                        }`}
+                    title="View Add-On Management"
+                >
+                    Add-On Management
+                </button>
             </nav>
 
-            {planManagementInnerTab === 'plan' ? renderPlanCards() : renderSubscriptionManagement()}
+            {planManagementInnerTab === 'plan' ? renderPlanCards() : planManagementInnerTab === 'subscription' ? renderSubscriptionManagement() : renderAddOnsManagement()}
         </div>
     );
 
@@ -6091,7 +6534,7 @@ const SuperAdmin = () => {
 
                                 <div className="flex items-center">
                                     <div className="w-full h-8 rounded-lg flex items-center justify-center mr-3">
-                                        <span className="text-white font-bold text-lg">{activeTab === 'user-management' ? 'User Management' : activeTab === 'payments' ? 'Payments' : activeTab === 'plan-management' ? (planManagementInnerTab === 'plan' ? 'Plan Management' : 'Subscription Management') : activeTab === 'contact-request' ? 'Contact Request' : activeTab === 'support' ? 'Support' : activeTab === 'notifications' ? 'Notifications' : activeTab === 'email-content' ? 'Email Content' : 'Contact Request'}</span>
+                                        <span className="text-white font-bold text-lg">{activeTab === 'user-management' ? 'User Management' : activeTab === 'payments' ? 'Payments' : activeTab === 'plan-management' ? (planManagementInnerTab === 'plan' ? 'Plan Management' : planManagementInnerTab === 'subscription' ? 'Subscription Management' : 'Add-On Management') : activeTab === 'contact-request' ? 'Contact Request' : activeTab === 'support' ? 'Support' : activeTab === 'notifications' ? 'Notifications' : activeTab === 'email-content' ? 'Email Content' : 'Contact Request'}</span>
 
                                     </div>
                                 </div>
@@ -6099,12 +6542,21 @@ const SuperAdmin = () => {
                             <div className="flex items-center space-x-4">
                                 <button className="p-2 transition-all duration-200 hover:scale-110 relative shadow-md hover:shadow-lg"
                                     onClick={() => {
-                                        const newTab = activeTab === 'notifications' ? 'user-management' : 'notifications';
-                                        setActiveTab(newTab);
+                                        let newTab;
+                                        if (activeTab === 'notifications') {
+                                            // Restore previous tab when clicking notifications again
+                                            newTab = previousTab;
+                                            setActiveTab(previousTab);
+                                        } else {
+                                            // Save current tab before switching to notifications
+                                            setPreviousTab(activeTab);
+                                            newTab = 'notifications';
+                                            setActiveTab('notifications');
+                                        }
                                         window.location.hash = newTab;
                                         closeAllInvoiceRows();
                                     }}
-                                    title={activeTab === 'notifications' ? "Switch to User Management" : "Switch to Notifications"}
+                                    title={activeTab === 'notifications' ? `Switch to ${previousTab === 'user-management' ? 'User Management' : previousTab === 'payments' ? 'Payments' : previousTab === 'plan-management' ? 'Plan Management' : previousTab === 'support' ? 'Support' : previousTab === 'contact-request' ? 'Contact Request' : previousTab === 'email-content' ? 'Email Content' : 'User Management'}` : "Switch to Notifications"}
                                 >
                                     <MdOutlineNotifications className="relative w-6 h-6 text-white" />
                                     {notificationsData.length > 0 && (

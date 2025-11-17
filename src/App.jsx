@@ -34,6 +34,7 @@ const SuperAdmin = lazy(() => import("./Super_Admin/SuperAdmin"));
 const SupportTicket = lazy(() => import("./pages/SupportTicket"));
 const StripePaymentPage = lazy(() => import("./pages/StripePaymentPage"));
 const StripeHostedPaymentPage = lazy(() => import("./pages/StripeHostedPaymentPage"));
+const AddOnsPage = lazy(() => import("./pages/AddOnsPage"));
 const ProposalDetails = lazy(() => import("./pages/ProposalDetails"));
 const RFPDetails = lazy(() => import("./pages/RFPDetails"));
 
@@ -125,14 +126,19 @@ const App = () => {
             </ProtectedRoutes>
           } />
 
-          <Route path="/payment" element={
+          <Route path="/payment/old" element={
             <ProtectedRoutes allowedRoles={["company"]}>
               <StripePaymentPage />
             </ProtectedRoutes>
           } />
-          <Route path="/payment/hosted" element={
+          <Route path="/payment" element={
             <ProtectedRoutes allowedRoles={["company"]}>
               <StripeHostedPaymentPage />
+            </ProtectedRoutes>
+          } />
+          <Route path="/add-ons" element={
+            <ProtectedRoutes allowedRoles={["company"]}>
+              <AddOnsPage />
             </ProtectedRoutes>
           } />
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useNavigate } from 'react-router-dom';
@@ -42,7 +42,7 @@ const CheckoutForm = ({ selectedPlan, billingCycle, onSuccess, onError }) => {
                 }
 
                 const response = await axios.post(
-                    `${baseUrl}${STRIPE_CONFIG.API_ENDPOINTS.CREATE_PAYMENT_INTENT}`,
+                    `${baseUrl}${STRIPE_CONFIG.API_ENDPOINTS.CREATE_CHECKOUT_SESSION}`,
                     {
                         planId: selectedPlan._id,
                         billingCycle: billingCycle,
@@ -306,6 +306,7 @@ const CheckoutForm = ({ selectedPlan, billingCycle, onSuccess, onError }) => {
 const StripePaymentPage = () => {
     const navigate = useNavigate();
     const { subscriptionPlans, mostPopularPlan } = useSubscriptionPlans();
+    const checkoutRef = useRef(null);
 
     // Get Stripe configuration status
     const stripeConfig = getStripeConfigStatus();
@@ -440,6 +441,15 @@ const StripePaymentPage = () => {
         setSelectedPlan(plan);
         setShowCheckout(true);
     };
+
+    // Auto-scroll to checkout when it becomes visible
+    useEffect(() => {
+        if (showCheckout && checkoutRef.current) {
+            setTimeout(() => {
+                checkoutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    }, [showCheckout]);
 
     const handlePaymentSuccess = (paymentIntent) => {
         setPaymentSuccess(true);
@@ -620,7 +630,7 @@ const StripePaymentPage = () => {
 
                 {/* Checkout Section */}
                 {showCheckout && selectedPlan && (
-                    <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+                    <div ref={checkoutRef} className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-2xl font-bold text-gray-900">Complete Your Purchase</h2>
                             <button

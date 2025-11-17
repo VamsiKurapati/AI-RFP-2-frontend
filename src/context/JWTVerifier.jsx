@@ -20,6 +20,11 @@ export const JWTVerifierProvider = ({ children }) => {
 
         timeoutRef.current = setTimeout(() => {
             setIsTokenValid(false);
+            // Save current location before removing token
+            const currentPath = window.location.pathname + window.location.search;
+            if (currentPath !== '/login' && currentPath !== '/sign_up') {
+                sessionStorage.setItem('redirectAfterLogin', currentPath);
+            }
             localStorage.removeItem('token');
             Swal.fire({
                 title: 'Token Expired',
@@ -46,6 +51,11 @@ export const JWTVerifierProvider = ({ children }) => {
 
             if (expiryTime <= now) {
                 setIsTokenValid(false);
+                // Save current location before removing token
+                const currentPath = window.location.pathname + window.location.search;
+                if (currentPath !== '/login' && currentPath !== '/sign_up') {
+                    sessionStorage.setItem('redirectAfterLogin', currentPath);
+                }
                 localStorage.removeItem('token');
                 Swal.fire({
                     title: 'Token Expired',
@@ -62,6 +72,11 @@ export const JWTVerifierProvider = ({ children }) => {
             scheduleLogout(expiryTime);
         } catch (error) {
             setIsTokenValid(false);
+            // Save current location before removing token
+            const currentPath = window.location.pathname + window.location.search;
+            if (currentPath !== '/login' && currentPath !== '/sign_up') {
+                sessionStorage.setItem('redirectAfterLogin', currentPath);
+            }
             localStorage.removeItem('token');
             Swal.fire({
                 title: 'Error',

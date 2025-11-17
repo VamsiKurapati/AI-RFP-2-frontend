@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import NavbarComponent from './NavbarComponent';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { MdOutlineEdit, MdOutlineSearch, MdOutlineRotateLeft, MdOutlineDeleteForever, MdPersonAddAlt1, MdOutlineClose } from "react-icons/md";
+import { MdOutlineEdit, MdOutlineSearch, MdOutlineRotateLeft, MdOutlineDeleteForever, MdPersonAddAlt1, MdOutlineClose, MdOutlinePayments } from "react-icons/md";
 import axios from 'axios';
 import { useUser } from '../context/UserContext';
 import { useOnboarding } from '../context/OnboardingContext';
@@ -106,6 +107,7 @@ const PAGE_SIZE = 5;
 const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/dashboard`;
 
 const Dashboard = () => {
+    const navigate = useNavigate();
     const user = localStorage.getItem("user");
     const userName = user ? (JSON.parse(user).fullName) : "Unknown User";
     const userEmail = user ? (JSON.parse(user).email) : "No email found";
@@ -1109,15 +1111,27 @@ const Dashboard = () => {
                             <p className="text-[#8300AB] font-medium mb-3">
                                 Current plan: {subscriptionData ? subscriptionData.plan_name : 'Loading...'}
                             </p>
-                            {subscriptionData && !["Enterprise", "Custom Enterprise Plan"].includes(subscriptionData.plan_name) && (role === "company") && (
-                                <PaymentButton
-                                    variant="primary"
-                                    size="sm"
-                                    className="bg-[#8300AB] hover:bg-[#6B0089]"
-                                >
-                                    Upgrade
-                                </PaymentButton>
-                            )}
+                            <div className="flex flex-wrap gap-3">
+                                {subscriptionData && !["Enterprise", "Custom Enterprise Plan"].includes(subscriptionData.plan_name) && (role === "company") && (
+                                    <PaymentButton
+                                        variant="primary"
+                                        size="sm"
+                                        className="bg-[#8300AB] hover:bg-[#6B0089]"
+                                    >
+                                        Upgrade
+                                    </PaymentButton>
+                                )}
+                                {role === "company" && (
+                                    <button
+                                        onClick={() => navigate('/add-ons')}
+                                        className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-gradient-to-r from-[#6C63FF] to-[#8B7CF6] text-white hover:from-[#5A52E8] hover:to-[#7A6CF0] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#6C63FF] shadow-md hover:shadow-lg"
+                                        title="View and purchase add-ons"
+                                    >
+                                        <MdOutlinePayments className="w-5 h-5 mr-2" />
+                                        Add-Ons
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
