@@ -8,6 +8,48 @@ import { useUser } from "../context/UserContext";
 import { useJWTVerifier } from "../context/JWTVerifier";
 import { sanitizeFormData, sanitizeEmail } from "../utils/sanitization";
 
+// Route access mapping - defines which roles can access which routes
+const routeAccessMap = {
+  '/discover': ['company', 'Editor', 'Viewer'],
+  '/proposals': ['company', 'Editor', 'Viewer'],
+  '/proposal_page': ['company', 'Editor', 'Viewer'],
+  '/compliance-check': ['company', 'Editor'],
+  '/basic-compliance-check': ['company', 'Editor', 'Viewer'],
+  '/advanced-compliance-check': ['company', 'Editor', 'Viewer'],
+  '/dashboard': ['company', 'Editor', 'Viewer'],
+  '/company-profile': ['company'],
+  '/company-profile-update': ['company'],
+  '/employee-profile': ['Editor', 'Viewer'],
+  '/employee-profile-update': ['Editor', 'Viewer'],
+  '/admin': ['SuperAdmin'],
+  '/support-ticket': ['company', 'Editor', 'Viewer'],
+  '/payment': ['company'],
+  '/payment/old': ['company'],
+  '/payment/hosted': ['company'],
+  '/add-ons': ['company'],
+  '/change-password': ['company', 'Editor', 'Viewer', 'SuperAdmin'],
+  '/rfp-details': ['company', 'Editor', 'Viewer'],
+};
+
+// Helper function to check if a user role has access to a route
+const checkRouteAccess = (path, userRole) => {
+  // Remove query parameters and hash from path
+  const cleanPath = path.split('?')[0].split('#')[0];
+
+  // Check exact match first
+  if (routeAccessMap[cleanPath]) {
+    return routeAccessMap[cleanPath].includes(userRole);
+  }
+
+  // Check for dynamic routes (e.g., /proposal-details/:id)
+  if (cleanPath.startsWith('/proposal-details/')) {
+    return ['company', 'Editor', 'Viewer'].includes(userRole);
+  }
+
+  // If route is not in the map, deny access by default (safe approach)
+  return false;
+};
+
 const LoginPage = () => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
@@ -95,7 +137,17 @@ const LoginPage = () => {
         const redirectPath = sessionStorage.getItem('redirectAfterLogin');
         if (redirectPath) {
           sessionStorage.removeItem('redirectAfterLogin');
-          navigate(redirectPath);
+
+          // Check if user has access to the redirect path
+          const userRole = role === "SuperAdmin" ? "SuperAdmin" : role === "company" ? "company" : res.data.user.accessLevel || "Viewer";
+          const hasAccess = checkRouteAccess(redirectPath, userRole);
+
+          if (hasAccess) {
+            navigate(redirectPath);
+          } else {
+            // User doesn't have access to the saved path, redirect to default
+            role === "SuperAdmin" ? navigate("/admin") : navigate("/dashboard");
+          }
         } else {
           // Default navigation based on role
           role === "SuperAdmin" ? navigate("/admin") : navigate("/dashboard");
