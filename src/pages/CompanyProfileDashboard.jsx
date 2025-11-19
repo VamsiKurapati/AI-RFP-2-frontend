@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { MdOutlineEdit, MdOutlineSearch, MdOutlineAddAPhoto, MdOutlineBusinessCenter, MdOutlineHome, MdOutlineLocationOn, MdOutlineMail, MdOutlineCall, MdOutlineLanguage, MdOutlineGroups, MdOutlineDocumentScanner, MdOutlineFolder, MdOutlineAssignment, MdOutlineVerifiedUser, MdOutlineDownload, MdOutlineOpenInNew, MdOutlineGroup, MdOutlineCalendarToday, MdOutlineAdd, MdOutlineClose, MdOutlinePhone, MdOutlineEmail, MdOutlineCheck, MdOutlinePayments, MdOutlineDelete, MdOutlineHelp } from "react-icons/md";
+import { MdOutlineEdit, MdOutlineSearch, MdOutlineAddAPhoto, MdOutlineBusinessCenter, MdOutlineHome, MdOutlineLocationOn, MdOutlineMail, MdOutlineCall, MdOutlineLanguage, MdOutlineGroups, MdOutlineDocumentScanner, MdOutlineFolder, MdOutlineAssignment, MdOutlineVerifiedUser, MdOutlineDownload, MdOutlineOpenInNew, MdOutlineGroup, MdOutlineCalendarToday, MdOutlineAdd, MdOutlineClose, MdOutlinePhone, MdOutlineEmail, MdOutlineCheck, MdOutlinePayments, MdOutlineDelete, MdOutlineHelp, MdOutlineKeyboardArrowDown } from "react-icons/md";
+import { FaRegCheckCircle } from "react-icons/fa";
 import NavbarComponent from "./NavbarComponent";
 import { useProfile } from "../context/ProfileContext";
 import { useOnboarding } from "../context/OnboardingContext";
@@ -280,6 +281,7 @@ const AddTeamMemberModal = ({ isOpen, onClose }) => {
   });
 
   const [addingTeamMember, setAddingTeamMember] = useState(false);
+  const [accessLevelDropdownOpen, setAccessLevelDropdownOpen] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -467,19 +469,66 @@ const AddTeamMemberModal = ({ isOpen, onClose }) => {
             className="mb-4"
           />
 
-          <div>
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">Access Level<span className="text-red-500">*</span></label>
-            <select
-              value={formData.accessLevel}
-              onChange={(e) => setFormData({ ...formData, accessLevel: e.target.value })}
-              className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={addingTeamMember}
-              title="Select the access level for this team member"
-            >
-              <option value="Editor">Editor</option>
-              <option value="Viewer">Viewer</option>
-              <option value="Member">Member</option>
-            </select>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => !addingTeamMember && setAccessLevelDropdownOpen(!accessLevelDropdownOpen)}
+                disabled={addingTeamMember}
+                className="w-full px-4 py-3 bg-white border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-left flex items-center justify-between hover:border-[#6C63FF] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Select the access level for this team member"
+              >
+                <span className="text-gray-900 font-medium">{formData.accessLevel}</span>
+                <MdOutlineKeyboardArrowDown
+                  className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${accessLevelDropdownOpen ? 'transform rotate-180' : ''}`}
+                />
+              </button>
+
+              {accessLevelDropdownOpen && !addingTeamMember && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setAccessLevelDropdownOpen(false)}
+                  />
+                  <div className="absolute z-20 w-full mt-2 bg-white border border-[#E5E7EB] rounded-lg shadow-xl overflow-hidden">
+                    {[
+                      { value: 'Editor', label: 'Editor', icon: '✏️', description: 'Can create and edit proposals' },
+                      { value: 'Viewer', label: 'Viewer', icon: '👁️', description: 'Read-only access to proposals' },
+                      { value: 'Member', label: 'Member', icon: '👤', description: 'Basic member access' }
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, accessLevel: option.value });
+                          setAccessLevelDropdownOpen(false);
+                        }}
+                        className={`w-full px-4 py-3 text-left hover:bg-[#F3F4F6] transition-colors flex items-start gap-3 ${formData.accessLevel === option.value
+                          ? 'bg-[#EEF2FF] border-l-4 border-[#6C63FF]'
+                          : ''
+                          }`}
+                      >
+                        <span className="text-lg mt-0.5">{option.icon}</span>
+                        <div className="flex-1">
+                          <div className={`font-normal ${formData.accessLevel === option.value ? 'text-[#6C63FF]' : 'text-gray-900'}`}>
+                            {option.label}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {option.description}
+                          </div>
+                        </div>
+                        {formData.accessLevel === option.value && (
+                          <span className="text-[#6C63FF] mt-1">
+                            <FaRegCheckCircle className="w-5 h-5" />
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4">

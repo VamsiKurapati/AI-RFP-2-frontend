@@ -125,8 +125,8 @@ const GenerateProposalPage = () => {
 
       <div className="w-full mx-auto px-8 md:px-12 mt-20">
         <div className="w-full flex items-center mb-6">
-          <button 
-            className="bg-white rounded-lg p-2 mr-4 text-[#2563EB] hover:bg-gray-100 transition-colors" 
+          <button
+            className="bg-white rounded-lg p-2 mr-4 text-[#2563EB] hover:bg-gray-100 transition-colors"
             onClick={() => navigate(-1)}
             title="Go back to previous page"
           >
@@ -150,8 +150,8 @@ const GenerateProposalPage = () => {
               <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 flex flex-col">
                 <div className="flex justify-between items-center mb-2">
                   <h2 className="font-semibold text-[24px]">Company Details</h2>
-                  <button 
-                    className="text-[#2563EB] font-medium text-[16px] flex items-center gap-1 hover:underline transition-colors" 
+                  <button
+                    className="text-[#2563EB] font-medium text-[16px] flex items-center gap-1 hover:underline transition-colors"
                     onClick={() => navigate('/company-profile-update')}
                     title="Edit company profile details"
                   >
@@ -181,8 +181,8 @@ const GenerateProposalPage = () => {
               <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 flex flex-col">
                 <div className="flex justify-between items-center mb-2">
                   <h2 className="font-semibold text-[24px]">Team Members</h2>
-                  <button 
-                    className="text-[#2563EB] font-medium text-[16px] flex items-center gap-1 hover:underline transition-colors" 
+                  <button
+                    className="text-[#2563EB] font-medium text-[16px] flex items-center gap-1 hover:underline transition-colors"
                     onClick={() => setShowAddTeam(true)}
                     title="Add a new team member"
                   >
@@ -224,8 +224,8 @@ const GenerateProposalPage = () => {
                         </div>
                       ))}
                     </div>
-                    <button 
-                      className="text-[#2563EB] text-[16px] self-end hover:underline transition-colors" 
+                    <button
+                      className="text-[#2563EB] text-[16px] self-end hover:underline transition-colors"
                       onClick={() => setShowViewAllTeam(!showViewAllTeam)}
                       title={showViewAllTeam ? "Show fewer team members" : "View all team members"}
                     >
@@ -267,8 +267,8 @@ const GenerateProposalPage = () => {
           <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 flex flex-col">
             <div className="flex justify-between items-center mb-2">
               <h2 className="font-semibold text-[24px]">Case Studies</h2>
-              <button 
-                className="text-[#2563EB] font-medium text-[16px] flex items-center gap-1 hover:underline transition-colors" 
+              <button
+                className="text-[#2563EB] font-medium text-[16px] flex items-center gap-1 hover:underline transition-colors"
                 onClick={() => setShowAddCaseStudy(true)}
                 title="Add a new case study"
               >
@@ -313,8 +313,8 @@ const GenerateProposalPage = () => {
         {/* Save & Generate Button */}
         <div className="flex flex-col sm:flex-row justify-end gap-4">
           {/* Button to go to compliance page */}
-          <button 
-            className="bg-[#2563EB] text-white px-8 py-2 rounded-lg font-medium text-lg hover:bg-[#1d4ed8] w-auto mx-auto transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]" 
+          <button
+            className="bg-[#2563EB] text-white px-8 py-2 rounded-lg font-medium text-lg hover:bg-[#1d4ed8] w-auto mx-auto transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
             onClick={() => navigate('/compliance-check', { state: { data: proposal } })}
             disabled={isGeneratingProposal}
             title={isGeneratingProposal ? "Please wait for proposal generation to complete" : "Check compliance requirements for this proposal"}

@@ -28,6 +28,18 @@ import {
     MdOutlineEdit,
     MdOutlinePowerSettingsNew
 } from 'react-icons/md';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
+import Underline from '@tiptap/extension-underline';
+import Link from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align';
+import { TextStyle } from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
+import CodeBlock from '@tiptap/extension-code-block';
+import Blockquote from '@tiptap/extension-blockquote';
+import Image from '@tiptap/extension-image';
 import { IoLogoLinkedin } from "react-icons/io";
 import { LuCrown } from "react-icons/lu";
 import { FaRegCheckCircle } from "react-icons/fa";
@@ -258,8 +270,6 @@ const SubscriptionManagementModal = React.memo(({
 });
 
 
-
-
 const SuperAdmin = () => {
     const navigate = useNavigate();
     const { role } = useUser();
@@ -277,6 +287,7 @@ const SuperAdmin = () => {
 
     // Inner Tabs
     const [supportTab, setSupportTab] = useState('Enterprise');
+    const [emailContentInnerTab, setEmailContentInnerTab] = useState('templates');
 
     // Profile
     const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -377,6 +388,7 @@ const SuperAdmin = () => {
     const [rowsPerPageSubscriptions, setRowsPerPageSubscriptions] = useState(10);
 
     const [loading, setLoading] = useState(false);
+    const [emailSendingLoading, setEmailSendingLoading] = useState(false);
 
     const baseUrl = `${import.meta.env.VITE_API_BASE_URL}`;
 
@@ -397,6 +409,16 @@ const SuperAdmin = () => {
         emailSubject: '',
         emailBody: ''
     });
+
+    // Custom Email state
+    const [customEmailForm, setCustomEmailForm] = useState({
+        subject: '',
+        body: '',
+        sendTo: 'All',
+        customEmails: ''
+    });
+    const [sendToDropdownOpen, setSendToDropdownOpen] = useState(false);
+    const imageUploadRef = useRef(null);
 
 
     const formatDate = (dateString) => {
@@ -4216,6 +4238,38 @@ const SuperAdmin = () => {
 
     const renderEmailContent = () => (
         <div className="h-full">
+            {/* Email Content Inner Tabs */}
+            <div className="mb-6">
+                <nav className="flex space-x-8">
+                    <button
+                        onClick={() => { setEmailContentInnerTab('templates') }}
+                        className={`py-2 px-2 border-b-2 font-medium text-[16px] transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${emailContentInnerTab === 'templates'
+                            ? 'border-[#6C63FF] text-[#FFFFFF] rounded-t-lg bg-[#2563EB]'
+                            : 'border-transparent text-[#4B5563]'
+                            }`}
+                        title="View and edit email templates"
+                    >
+                        Email Templates
+                    </button>
+                    <button
+                        onClick={() => { setEmailContentInnerTab('custom') }}
+                        className={`py-2 px-2 border-b-2 font-medium text-[16px] transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${emailContentInnerTab === 'custom'
+                            ? 'border-[#6C63FF] text-[#FFFFFF] rounded-t-lg bg-[#2563EB]'
+                            : 'border-transparent text-[#4B5563]'
+                            }`}
+                        title="Create and send custom emails"
+                    >
+                        Custom Email
+                    </button>
+                </nav>
+            </div>
+
+            {emailContentInnerTab === 'templates' ? renderEmailTemplates() : renderCustomEmail()}
+        </div>
+    );
+
+    const renderEmailTemplates = () => (
+        <div className="h-full">
             {/* Search Bar */}
             <div className="mb-6 py-4">
                 <div className="flex flex-col gap-3 xs:gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -4483,6 +4537,693 @@ const SuperAdmin = () => {
                         </div>
                     </div>
                 </>
+            )}
+        </div>
+    );
+
+    const handleCustomEmailChange = (field, value) => {
+        setCustomEmailForm(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    // Tiptap Editor for Custom Email Body
+    const emailEditor = useEditor({
+        extensions: [
+            StarterKit,
+            Underline,
+            Link.configure({
+                openOnClick: false,
+                HTMLAttributes: {
+                    class: 'text-blue-600 underline cursor-pointer',
+                },
+            }),
+            TextAlign.configure({
+                types: ['heading', 'paragraph'],
+            }),
+            TextStyle,
+            Color,
+            Highlight.configure({
+                multicolor: true,
+            }),
+            CodeBlock,
+            Blockquote,
+            Image.configure({
+                inline: true,
+                allowBase64: true,
+                HTMLAttributes: {
+                    class: 'max-w-full h-auto rounded-lg',
+                },
+            }),
+            Placeholder.configure({
+                placeholder: 'Enter email body content. You can use the toolbar above to format your text...',
+            }),
+        ],
+        content: customEmailForm.body,
+        onUpdate: ({ editor }) => {
+            handleCustomEmailChange('body', editor.getHTML());
+        },
+        editorProps: {
+            attributes: {
+                class: 'tiptap-editor focus:outline-none min-h-[300px] px-4 py-3',
+            },
+        },
+    });
+
+    // Update editor content when form is reset
+    useEffect(() => {
+        if (emailEditor && customEmailForm.body === '') {
+            emailEditor.commands.setContent('');
+        }
+    }, [customEmailForm.body, emailEditor]);
+
+    const handleSendCustomEmail = async () => {
+        if (!customEmailForm.subject) {
+            toast.error('Please fill in Subject field');
+            return;
+        }
+
+        // Get HTML directly from editor to ensure we have the latest content
+        const bodyHTML = emailEditor ? emailEditor.getHTML() : customEmailForm.body;
+
+        if (!bodyHTML || bodyHTML.trim() === '' || bodyHTML === '<p></p>') {
+            toast.error('Please fill in Body field');
+            return;
+        }
+
+        if (customEmailForm.sendTo === 'Custom Members' && !customEmailForm.customEmails.trim()) {
+            toast.error('Please enter email addresses for Custom Members');
+            return;
+        }
+
+        setEmailSendingLoading(true);
+        try {
+            const payload = {
+                subject: customEmailForm.subject,
+                body: bodyHTML, // Send HTML format
+                sendTo: customEmailForm.sendTo,
+                ...(customEmailForm.sendTo === 'Custom Members' && {
+                    customEmails: customEmailForm.customEmails.split(',').map(email => email.trim()).filter(email => email)
+                })
+            };
+
+            const response = await axios.post(`${baseUrl}/admin/sendCustomEmail`, payload, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+            });
+
+            if (response.status === 200) {
+                toast.success(response?.data?.message || 'Custom email sent successfully');
+                setCustomEmailForm({
+                    subject: '',
+                    body: '',
+                    sendTo: 'All',
+                    customEmails: ''
+                });
+                emailEditor.commands.setContent('');
+                setSendToDropdownOpen(false);
+            } else {
+                toast.error(response?.data?.message || 'Failed to send custom email');
+            }
+        } catch (error) {
+            console.error('Error sending custom email:', error);
+            toast.error(error.response?.data?.message || 'Failed to send custom email');
+        } finally {
+            setEmailSendingLoading(false);
+        }
+    };
+
+    const renderCustomEmail = () => (
+        <div className="h-full">
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-md relative">
+                <div className="space-y-6">
+                    {/* Subject Field */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Subject <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={customEmailForm.subject}
+                            onChange={(e) => handleCustomEmailChange('subject', e.target.value)}
+                            className="w-full px-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
+                            placeholder="Enter email subject"
+                        />
+                    </div>
+
+                    {/* Body Field - Tiptap Editor */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Body <span className="text-red-500">*</span>
+                        </label>
+                        <div className="border border-[#E5E7EB] rounded-lg overflow-hidden bg-white">
+                            {/* Toolbar */}
+                            {emailEditor && (
+                                <div className="flex items-center gap-1 p-2 border-b border-[#E5E7EB] bg-gray-50 flex-wrap">
+                                    {/* Text Formatting */}
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().toggleBold().run()}
+                                        disabled={!emailEditor.can().chain().focus().toggleBold().run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive('bold') ? 'bg-gray-300' : ''}`}
+                                        title="Bold"
+                                    >
+                                        <strong>B</strong>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().toggleItalic().run()}
+                                        disabled={!emailEditor.can().chain().focus().toggleItalic().run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive('italic') ? 'bg-gray-300' : ''}`}
+                                        title="Italic"
+                                    >
+                                        <em>I</em>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().toggleUnderline().run()}
+                                        disabled={!emailEditor.can().chain().focus().toggleUnderline().run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive('underline') ? 'bg-gray-300' : ''}`}
+                                        title="Underline"
+                                    >
+                                        <u>U</u>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().toggleStrike().run()}
+                                        disabled={!emailEditor.can().chain().focus().toggleStrike().run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive('strike') ? 'bg-gray-300' : ''}`}
+                                        title="Strikethrough"
+                                    >
+                                        <span style={{ textDecoration: 'line-through' }}>S</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().toggleCode().run()}
+                                        disabled={!emailEditor.can().chain().focus().toggleCode().run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive('code') ? 'bg-gray-300' : ''}`}
+                                        title="Inline Code"
+                                    >
+                                        {'</>'}
+                                    </button>
+                                    <div className="w-px h-6 bg-gray-300 mx-1" />
+
+                                    {/* Headings */}
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().toggleHeading({ level: 1 }).run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive('heading', { level: 1 }) ? 'bg-gray-300' : ''}`}
+                                        title="Heading 1"
+                                    >
+                                        H1
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().toggleHeading({ level: 2 }).run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive('heading', { level: 2 }) ? 'bg-gray-300' : ''}`}
+                                        title="Heading 2"
+                                    >
+                                        H2
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().toggleHeading({ level: 3 }).run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive('heading', { level: 3 }) ? 'bg-gray-300' : ''}`}
+                                        title="Heading 3"
+                                    >
+                                        H3
+                                    </button>
+                                    <div className="w-px h-6 bg-gray-300 mx-1" />
+
+                                    {/* Lists */}
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().toggleBulletList().run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive('bulletList') ? 'bg-gray-300' : ''}`}
+                                        title="Bullet List"
+                                    >
+                                        •
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().toggleOrderedList().run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive('orderedList') ? 'bg-gray-300' : ''}`}
+                                        title="Numbered List"
+                                    >
+                                        1.
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().toggleBlockquote().run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive('blockquote') ? 'bg-gray-300' : ''}`}
+                                        title="Blockquote"
+                                    >
+                                        "
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().toggleCodeBlock().run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive('codeBlock') ? 'bg-gray-300' : ''}`}
+                                        title="Code Block"
+                                    >
+                                        {'{}'}
+                                    </button>
+                                    <div className="w-px h-6 bg-gray-300 mx-1" />
+
+                                    {/* Text Alignment */}
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().setTextAlign('left').run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive({ textAlign: 'left' }) ? 'bg-gray-300' : ''}`}
+                                        title="Align Left"
+                                    >
+                                        ⬅
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().setTextAlign('center').run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive({ textAlign: 'center' }) ? 'bg-gray-300' : ''}`}
+                                        title="Align Center"
+                                    >
+                                        ⬌
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().setTextAlign('right').run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive({ textAlign: 'right' }) ? 'bg-gray-300' : ''}`}
+                                        title="Align Right"
+                                    >
+                                        ➡
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().setTextAlign('justify').run()}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive({ textAlign: 'justify' }) ? 'bg-gray-300' : ''}`}
+                                        title="Justify"
+                                    >
+                                        ⬌⬌
+                                    </button>
+                                    <div className="w-px h-6 bg-gray-300 mx-1" />
+
+                                    {/* Link */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const previousUrl = emailEditor.getAttributes('link').href;
+                                            const url = window.prompt('Enter URL:', previousUrl || '');
+                                            if (url !== null) {
+                                                if (url === '') {
+                                                    emailEditor.chain().focus().extendMarkRange('link').unsetLink().run();
+                                                } else {
+                                                    emailEditor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+                                                }
+                                            }
+                                        }}
+                                        className={`p-2 rounded hover:bg-gray-200 transition-colors ${emailEditor.isActive('link') ? 'bg-gray-300' : ''}`}
+                                        title="Insert/Edit Link"
+                                    >
+                                        🔗
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().unsetLink().run()}
+                                        disabled={!emailEditor.isActive('link')}
+                                        className="p-2 rounded hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Remove Link"
+                                    >
+                                        🔗✕
+                                    </button>
+                                    <div className="w-px h-6 bg-gray-300 mx-1" />
+
+                                    {/* Colors */}
+                                    <div className="relative inline-block">
+                                        <input
+                                            type="color"
+                                            onChange={(e) => emailEditor.chain().focus().setColor(e.target.value).run()}
+                                            value={emailEditor.getAttributes('textStyle').color || '#000000'}
+                                            className="w-8 h-8 rounded cursor-pointer border border-gray-300"
+                                            title="Text Color"
+                                        />
+                                    </div>
+                                    <div className="relative inline-block">
+                                        <input
+                                            type="color"
+                                            onChange={(e) => emailEditor.chain().focus().toggleHighlight({ color: e.target.value }).run()}
+                                            value="#ffff00"
+                                            className="w-8 h-8 rounded cursor-pointer border border-gray-300"
+                                            title="Highlight Color"
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().unsetHighlight().run()}
+                                        disabled={!emailEditor.isActive('highlight')}
+                                        className="p-2 rounded hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Remove Highlight"
+                                    >
+                                        🎨✕
+                                    </button>
+                                    <div className="w-px h-6 bg-gray-300 mx-1" />
+
+                                    {/* Image */}
+                                    <div className="relative inline-block">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            ref={imageUploadRef}
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    // Validate file size (max 5MB)
+                                                    if (file.size > 5 * 1024 * 1024) {
+                                                        toast.error('Image size should be less than 5MB');
+                                                        e.target.value = '';
+                                                        return;
+                                                    }
+                                                    // Validate file type
+                                                    if (!file.type.startsWith('image/')) {
+                                                        toast.error('Please select a valid image file');
+                                                        e.target.value = '';
+                                                        return;
+                                                    }
+                                                    const reader = new FileReader();
+                                                    reader.onload = (event) => {
+                                                        const base64 = event.target?.result;
+                                                        if (base64 && emailEditor) {
+                                                            emailEditor.chain().focus().setImage({ src: base64 }).run();
+                                                            toast.success('Image inserted successfully');
+                                                        }
+                                                    };
+                                                    reader.onerror = () => {
+                                                        toast.error('Failed to read image file');
+                                                        e.target.value = '';
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                }
+                                                // Reset input so same file can be selected again
+                                                e.target.value = '';
+                                            }}
+                                            className="hidden"
+                                            id="image-upload-input"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                // Show options: URL or Upload
+                                                const choice = window.confirm('Click OK to upload from device, or Cancel to enter image URL');
+                                                if (choice) {
+                                                    // Upload from device
+                                                    imageUploadRef.current?.click();
+                                                } else {
+                                                    // Enter URL
+                                                    const url = window.prompt('Enter image URL:');
+                                                    if (url && url.trim()) {
+                                                        emailEditor.chain().focus().setImage({ src: url.trim() }).run();
+                                                    }
+                                                }
+                                            }}
+                                            className="p-2 rounded hover:bg-gray-200 transition-colors"
+                                            title="Insert Image (Upload from device or URL)"
+                                        >
+                                            🖼️
+                                        </button>
+                                    </div>
+
+                                    {/* Other Tools */}
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().setHorizontalRule().run()}
+                                        className="p-2 rounded hover:bg-gray-200 transition-colors"
+                                        title="Horizontal Rule"
+                                    >
+                                        ─
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().clearNodes().unsetAllMarks().run()}
+                                        className="p-2 rounded hover:bg-gray-200 transition-colors"
+                                        title="Clear Formatting"
+                                    >
+                                        🗑
+                                    </button>
+                                    <div className="w-px h-6 bg-gray-300 mx-1" />
+
+                                    {/* Undo/Redo */}
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().undo().run()}
+                                        disabled={!emailEditor.can().chain().focus().undo().run()}
+                                        className="p-2 rounded hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Undo"
+                                    >
+                                        ↶
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => emailEditor.chain().focus().redo().run()}
+                                        disabled={!emailEditor.can().chain().focus().redo().run()}
+                                        className="p-2 rounded hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Redo"
+                                    >
+                                        ↷
+                                    </button>
+                                </div>
+                            )}
+                            {/* Editor Content */}
+                            <div className="min-h-[300px] max-h-[500px] overflow-y-auto">
+                                <style>{`
+                                    .tiptap-editor {
+                                        outline: none;
+                                    }
+                                    .tiptap-editor p {
+                                        margin: 0.5rem 0;
+                                    }
+                                    .tiptap-editor p.is-editor-empty:first-child::before {
+                                        content: attr(data-placeholder);
+                                        float: left;
+                                        color: #9ca3af;
+                                        pointer-events: none;
+                                        height: 0;
+                                    }
+                                    .tiptap-editor h1 {
+                                        font-size: 1.5rem;
+                                        font-weight: bold;
+                                        margin: 1rem 0;
+                                    }
+                                    .tiptap-editor h2 {
+                                        font-size: 1.25rem;
+                                        font-weight: bold;
+                                        margin: 0.75rem 0;
+                                    }
+                                    .tiptap-editor h3 {
+                                        font-size: 1.125rem;
+                                        font-weight: bold;
+                                        margin: 0.75rem 0;
+                                    }
+                                    .tiptap-editor ul, .tiptap-editor ol {
+                                        padding-left: 1.5rem;
+                                        margin: 0.5rem 0;
+                                    }
+                                    .tiptap-editor li {
+                                        margin: 0.25rem 0;
+                                    }
+                                    .tiptap-editor strong {
+                                        font-weight: bold;
+                                    }
+                                    .tiptap-editor em {
+                                        font-style: italic;
+                                    }
+                                    .tiptap-editor u {
+                                        text-decoration: underline;
+                                    }
+                                    .tiptap-editor s {
+                                        text-decoration: line-through;
+                                    }
+                                    .tiptap-editor code {
+                                        background-color: #f3f4f6;
+                                        color: #dc2626;
+                                        padding: 0.125rem 0.25rem;
+                                        border-radius: 0.25rem;
+                                        font-family: monospace;
+                                        font-size: 0.875em;
+                                    }
+                                    .tiptap-editor pre {
+                                        background-color: #1f2937;
+                                        color: #f9fafb;
+                                        padding: 1rem;
+                                        border-radius: 0.5rem;
+                                        overflow-x: auto;
+                                        margin: 0.75rem 0;
+                                    }
+                                    .tiptap-editor pre code {
+                                        background-color: transparent;
+                                        color: inherit;
+                                        padding: 0;
+                                        border-radius: 0;
+                                    }
+                                    .tiptap-editor blockquote {
+                                        border-left: 4px solid #6c63ff;
+                                        padding-left: 1rem;
+                                        margin: 0.75rem 0;
+                                        font-style: italic;
+                                        color: #6b7280;
+                                    }
+                                    .tiptap-editor hr {
+                                        border: none;
+                                        border-top: 1px solid #e5e7eb;
+                                        margin: 1rem 0;
+                                    }
+                                    .tiptap-editor a {
+                                        color: #2563eb;
+                                        text-decoration: underline;
+                                        cursor: pointer;
+                                    }
+                                    .tiptap-editor mark {
+                                        background-color: #fef08a;
+                                        padding: 0.125rem 0;
+                                    }
+                                    .tiptap-editor img {
+                                        max-width: 100%;
+                                        height: auto;
+                                        border-radius: 0.5rem;
+                                        margin: 0.75rem 0;
+                                        display: block;
+                                    }
+                                    .tiptap-editor[style*="text-align: left"] {
+                                        text-align: left;
+                                    }
+                                    .tiptap-editor[style*="text-align: center"] {
+                                        text-align: center;
+                                    }
+                                    .tiptap-editor[style*="text-align: right"] {
+                                        text-align: right;
+                                    }
+                                    .tiptap-editor[style*="text-align: justify"] {
+                                        text-align: justify;
+                                    }
+                                    .tiptap-editor:focus {
+                                        outline: none;
+                                    }
+                                `}</style>
+                                <EditorContent editor={emailEditor} />
+                            </div>
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500">
+                            💡 Tip: Use the toolbar above to format your email content. The editor supports rich text formatting.
+                        </p>
+                    </div>
+
+                    {/* Send To Dropdown */}
+                    <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Send To <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setSendToDropdownOpen(!sendToDropdownOpen)}
+                                className="w-full px-4 py-3 bg-white border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-left flex items-center justify-between hover:border-[#6C63FF] transition-colors shadow-sm"
+                            >
+                                <span className="text-gray-900 font-medium">{customEmailForm.sendTo}</span>
+                                <MdOutlineKeyboardArrowDown
+                                    className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${sendToDropdownOpen ? 'transform rotate-180' : ''}`}
+                                />
+                            </button>
+
+                            {sendToDropdownOpen && (
+                                <>
+                                    <div
+                                        className="fixed inset-0 z-10"
+                                        onClick={() => setSendToDropdownOpen(false)}
+                                    />
+                                    <div className="absolute z-20 w-full mt-2 bg-white border border-[#E5E7EB] rounded-lg shadow-xl overflow-hidden">
+                                        {[
+                                            { value: 'All', label: 'All', icon: '👥', description: 'Send to all users' },
+                                            { value: 'Active Users', label: 'Active Users', icon: '✅', description: 'Send to active users only' },
+                                            { value: 'Inactive Users', label: 'Inactive Users', icon: '⏸️', description: 'Send to inactive users only' },
+                                            { value: 'Custom Members', label: 'Custom Members', icon: '📧', description: 'Send to specific email addresses' }
+                                        ].map((option) => (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                onClick={() => {
+                                                    handleCustomEmailChange('sendTo', option.value);
+                                                    setSendToDropdownOpen(false);
+                                                }}
+                                                className={`w-full px-4 py-3 text-left hover:bg-[#F3F4F6] transition-colors flex items-start gap-3 ${customEmailForm.sendTo === option.value
+                                                    ? 'bg-[#EEF2FF] border-l-4 border-[#6C63FF]'
+                                                    : ''
+                                                    }`}
+                                            >
+                                                <span className="text-lg mt-0.5">{option.icon}</span>
+                                                <div className="flex-1">
+                                                    <div className={`font-normal ${customEmailForm.sendTo === option.value ? 'text-[#6C63FF]' : 'text-gray-900'}`}>
+                                                        {option.label}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 mt-0.5">
+                                                        {option.description}
+                                                    </div>
+                                                </div>
+                                                {customEmailForm.sendTo === option.value && (
+                                                    <span className="text-[#6C63FF] mt-1">
+                                                        <FaRegCheckCircle className="w-5 h-5" />
+                                                    </span>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Custom Members Email Input */}
+                    {customEmailForm.sendTo === 'Custom Members' && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Email Addresses <span className="text-red-500">*</span>
+                                <span className="ml-2 text-xs text-gray-500 font-normal">(Separate multiple emails with commas)</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={customEmailForm.customEmails}
+                                onChange={(e) => handleCustomEmailChange('customEmails', e.target.value)}
+                                className="w-full px-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
+                                placeholder="email1@example.com, email2@example.com, email3@example.com"
+                            />
+                            <p className="mt-2 text-xs text-gray-500">
+                                Enter email addresses separated by commas (e.g., user1@example.com, user2@example.com)
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Send Button */}
+                    <div className="flex justify-end pt-4 border-t border-[#E5E7EB]">
+                        <button
+                            onClick={handleSendCustomEmail}
+                            disabled={loading || !customEmailForm.subject || !customEmailForm.body || (customEmailForm.sendTo === 'Custom Members' && !customEmailForm.customEmails.trim())}
+                            className="px-6 py-2 bg-[#6C63FF] text-white rounded-lg hover:bg-[#5A52E5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                        >
+                            {loading ? 'Sending...' : 'Send Email'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {emailSendingLoading && (
+                <div className="fixed inset-0 z-50 flex flex-col justify-center items-center bg-black/50 backdrop-blur-md">
+                    <div className="flex justify-center mb-6 space-x-2 mt-10">
+                        <span className="w-3 h-3 bg-[#2563EB] rounded-full animate-bounce"></span>
+                        <span className="w-3 h-3 bg-[#2563EB] rounded-full animate-bounce delay-150"></span>
+                        <span className="w-3 h-3 bg-[#2563EB] rounded-full animate-bounce delay-300"></span>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-800 mb-3 text-center">Sending Email</h3>
+                    <p className="text-gray-600 text-sm leading-relaxed text-center">
+                        Please wait while we send the email. This may take a few moments as we send the email.
+                    </p>
+                </div>
             )}
         </div>
     );
@@ -6534,7 +7275,7 @@ const SuperAdmin = () => {
 
                                 <div className="flex items-center">
                                     <div className="w-full h-8 rounded-lg flex items-center justify-center mr-3">
-                                        <span className="text-white font-bold text-lg">{activeTab === 'user-management' ? 'User Management' : activeTab === 'payments' ? 'Payments' : activeTab === 'plan-management' ? (planManagementInnerTab === 'plan' ? 'Plan Management' : planManagementInnerTab === 'subscription' ? 'Subscription Management' : 'Add-On Management') : activeTab === 'contact-request' ? 'Contact Request' : activeTab === 'support' ? 'Support' : activeTab === 'notifications' ? 'Notifications' : activeTab === 'email-content' ? 'Email Content' : 'Contact Request'}</span>
+                                        <span className="text-white font-bold text-lg">{activeTab === 'user-management' ? 'User Management' : activeTab === 'payments' ? 'Payments' : activeTab === 'plan-management' ? (planManagementInnerTab === 'plan' ? 'Plan Management' : planManagementInnerTab === 'subscription' ? 'Subscription Management' : 'Add-On Management') : activeTab === 'contact-request' ? 'Contact Request' : activeTab === 'support' ? 'Support' : activeTab === 'notifications' ? 'Notifications' : activeTab === 'email-content' ? (emailContentInnerTab === 'templates' ? 'Email Templates' : 'Custom Email') : 'Contact Request'}</span>
 
                                     </div>
                                 </div>
