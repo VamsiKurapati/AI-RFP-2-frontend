@@ -4,6 +4,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { FiMenu } from "react-icons/fi";
 import { FaUserCircle } from "react-icons/fa";
 import { useUser } from "../context/UserContext";
+import axios from "axios";
+import Swal from "sweetalert2";
 
 const NavbarComponent = () => {
   const navigate = useNavigate();
@@ -27,12 +29,27 @@ const NavbarComponent = () => {
     setShowDropdown(!showDropdown);
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    setTimeout(() => {
-      navigate("/");
-      window.location.reload();
-    }, 1000);
+  const handleLogout = async () => {
+    try {
+      const result = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/auth/logout`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (result.status === 200) {
+        Swal.fire({
+          title: "Logged out successfully",
+          text: "You will be redirected to the login page...",
+          icon: "success",
+          timer: 1500,
+        });
+      }
+    } catch (error) {
+      console.error("Error logging out:", error);
+    } finally {
+      localStorage.clear();
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+    }
   };
 
   return (

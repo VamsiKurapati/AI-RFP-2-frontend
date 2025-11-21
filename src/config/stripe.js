@@ -6,7 +6,7 @@ export const STRIPE_CONFIG = {
     // API endpoints (these should match your backend)
     API_ENDPOINTS: {
         CREATE_CHECKOUT_SESSION: '/create-checkout-session',
-        CREATE_CHECKOUT_SESSION_ADD_ON: '/create-payment-intent-addOn',
+        CREATE_CHECKOUT_SESSION_ADD_ON: '/create-checkout-session-addOn',
         ACTIVATE_SUBSCRIPTION: '/activate-subscription',
         GET_SUBSCRIPTION_STATUS: '/subscription-status',
         CANCEL_SUBSCRIPTION: '/cancel-subscription',

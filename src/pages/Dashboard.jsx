@@ -1989,13 +1989,13 @@ const Dashboard = () => {
                                 const absoluteIdx = (currentDeletedGrantPage - 1) * PAGE_SIZE + idx;
                                 return (
                                     <tr key={absoluteIdx} className="border-t">
-                                        <td className="px-4 py-2 font-semibold">{p.OPPORTUNITY_TITLE || 'Not Provided'}</td>
-                                        <td className="px-4 py-2">{p.AGENCY_NAME || 'Not Provided'}</td>
-                                        <td className="px-4 py-2">{p.CLOSE_DATE ? new Date(p.CLOSE_DATE).toLocaleDateString('en-US', {
+                                        <td className="px-4 py-2 font-semibold">{p.OPPORTUNITY_TITLE || p.title || 'Not Provided'}</td>
+                                        <td className="px-4 py-2">{p.AGENCY_NAME || p.client || 'Not Provided'}</td>
+                                        <td className="px-4 py-2">{p.CLOSE_DATE || p.deadline ? new Date(p.CLOSE_DATE || p.deadline).toLocaleDateString('en-US', {
                                             year: 'numeric',
                                             month: 'short',
                                             day: 'numeric'
-                                        }) : "No close date"}</td>
+                                        }) : "No close date" || "No deadline"}</td>
                                         <td className="px-4 py-2">{statusBadge(p.OPPORTUNITY_STATUS || p.status)}</td>
                                         <td className="px-4 py-2">{p.restoreIn}</td>
                                         <td className="px-4 py-2">

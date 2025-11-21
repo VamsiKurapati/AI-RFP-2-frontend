@@ -522,9 +522,24 @@ const SuperAdmin = () => {
 
                 toast.success('Message added successfully');
 
-                setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
+                // Create message object with proper structure
+                const newMessageObject = {
+                    message: newAdminMessage,
+                    createdAt: new Date().toISOString(),
+                    created_at: new Date().toISOString()
+                };
+
+                // Add new message to the support ticket
+                setSupportTicketsData(prev => (prev || []).map(t => t._id === ticketId ? { ...t, adminMessages: [...(t.adminMessages || []), newMessageObject] } : t));
+                setFilteredSupport(prev => (prev || []).map(t => t._id === ticketId ? { ...t, adminMessages: [...(t.adminMessages || []), newMessageObject] } : t));
+
+                // Update selectedSupport to show the new message immediately in the modal
+                setSelectedSupport(prev => {
+                    if (prev && prev._id === ticketId) {
+                        return { ...prev, adminMessages: [...(prev.adminMessages || []), newMessageObject] };
+                    }
+                    return prev;
+                });
             }
         } catch (e) {
             toast.error('Failed to add message');
@@ -1507,11 +1522,27 @@ const SuperAdmin = () => {
         if (transactionDateFilter !== 'all') {
             const now = new Date();
             let since = null;
-            if (transactionDateFilter === 'last7Days') since = new Date(now.setDate((new Date()).getDate() - 7));
-            else if (transactionDateFilter === 'last15Days') since = new Date(now.setDate((new Date()).getDate() - 15));
-            else if (transactionDateFilter === 'last30Days') since = new Date(now.setDate((new Date()).getDate() - 30));
+
+            // Handle all the date filter options from the UI
+            if (transactionDateFilter === 'Today') {
+                const today = new Date(now);
+                today.setHours(0, 0, 0, 0);
+                since = today;
+            } else if (transactionDateFilter === 'Last 24 Hours') {
+                since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            } else if (transactionDateFilter === 'Last 7 Days' || transactionDateFilter === 'last7Days') {
+                since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            } else if (transactionDateFilter === 'Last 14 Days' || transactionDateFilter === 'last15Days' || transactionDateFilter === 'last14Days') {
+                since = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+            } else if (transactionDateFilter === 'Last 30 Days' || transactionDateFilter === 'last30Days') {
+                since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            }
+
             if (since) {
-                result = result.filter(t => new Date(t.created_at || t.createdAt) >= since);
+                result = result.filter(t => {
+                    const transactionDate = new Date(t.created_at || t.createdAt);
+                    return transactionDate >= since;
+                });
             }
         }
         setFilteredTransactions(result);
@@ -2011,7 +2042,7 @@ const SuperAdmin = () => {
                                         </td>
                                         <td className="flex  p-4 whitespace-nowrap">
 
-                                            <img src={user.logoUrl ? `${import.meta.env.VITE_API_BASE_URL}/profile/getProfileImage/file/${user.logoUrl}` : "https://via.placeholder.com/150"} alt="User Logo" className="mt-1 mr-1 w-[30px] h-[30px] rounded-full" />
+                                            <img src={user.logoUrl ? `${baseUrl}/profile/getProfileImage/file/${user.logoUrl}` : "https://via.placeholder.com/150"} alt="User Logo" className="mt-1 mr-1 w-[30px] h-[30px] rounded-full" />
 
                                             <div className="flex flex-col">
                                                 <span className="text-[16px] font-medium text-[#4B5563]">{user.companyName}</span>
@@ -4658,7 +4689,102 @@ const SuperAdmin = () => {
     const renderCustomEmail = () => (
         <div className="h-full">
             <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-md relative">
-                <div className="space-y-6">
+                {/* Send Button */}
+                <div className="flex justify-end pb-4 border-b border-[#E5E7EB]">
+                    <button
+                        onClick={handleSendCustomEmail}
+                        disabled={loading || !customEmailForm.subject || !customEmailForm.body || (customEmailForm.sendTo === 'Custom Members' && !customEmailForm.customEmails.trim())}
+                        className="px-6 py-2 bg-[#6C63FF] text-white rounded-lg hover:bg-[#5A52E5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                    >
+                        {loading ? 'Sending...' : 'Send Email'}
+                    </button>
+                </div>
+
+                {/* Send To Dropdown */}
+                <div className="relative mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Send To <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setSendToDropdownOpen(!sendToDropdownOpen)}
+                            className="w-full px-4 py-3 bg-white border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-left flex items-center justify-between hover:border-[#6C63FF] transition-colors shadow-sm"
+                        >
+                            <span className="text-gray-900 font-medium">{customEmailForm.sendTo}</span>
+                            <MdOutlineKeyboardArrowDown
+                                className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${sendToDropdownOpen ? 'transform rotate-180' : ''}`}
+                            />
+                        </button>
+
+                        {sendToDropdownOpen && (
+                            <>
+                                <div
+                                    className="fixed inset-0 z-10"
+                                    onClick={() => setSendToDropdownOpen(false)}
+                                />
+                                <div className="absolute z-20 w-full mt-2 bg-white border border-[#E5E7EB] rounded-lg shadow-xl overflow-hidden">
+                                    {[
+                                        { value: 'All', label: 'All', icon: '👥', description: 'Send to all users' },
+                                        { value: 'Active Users', label: 'Active Users', icon: '✅', description: 'Send to active users only' },
+                                        { value: 'Inactive Users', label: 'Inactive Users', icon: '⏸️', description: 'Send to inactive users only' },
+                                        { value: 'Custom Members', label: 'Custom Members', icon: '📧', description: 'Send to specific email addresses' }
+                                    ].map((option) => (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            onClick={() => {
+                                                handleCustomEmailChange('sendTo', option.value);
+                                                setSendToDropdownOpen(false);
+                                            }}
+                                            className={`w-full px-4 py-3 text-left hover:bg-[#F3F4F6] transition-colors flex items-start gap-3 ${customEmailForm.sendTo === option.value
+                                                ? 'bg-[#EEF2FF] border-l-4 border-[#6C63FF]'
+                                                : ''
+                                                }`}
+                                        >
+                                            <span className="text-lg mt-0.5">{option.icon}</span>
+                                            <div className="flex-1">
+                                                <div className={`font-normal ${customEmailForm.sendTo === option.value ? 'text-[#6C63FF]' : 'text-gray-900'}`}>
+                                                    {option.label}
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-0.5">
+                                                    {option.description}
+                                                </div>
+                                            </div>
+                                            {customEmailForm.sendTo === option.value && (
+                                                <span className="text-[#6C63FF] mt-1">
+                                                    <FaRegCheckCircle className="w-5 h-5" />
+                                                </span>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* Custom Members Email Input */}
+                {customEmailForm.sendTo === 'Custom Members' && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Email Addresses <span className="text-red-500">*</span>
+                            <span className="ml-2 text-xs text-gray-500 font-normal">(Separate multiple emails with commas)</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={customEmailForm.customEmails}
+                            onChange={(e) => handleCustomEmailChange('customEmails', e.target.value)}
+                            className="w-full px-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
+                            placeholder="email1@example.com, email2@example.com, email3@example.com"
+                        />
+                        <p className="mt-2 text-xs text-gray-500">
+                            Enter email addresses separated by commas (e.g., user1@example.com, user2@example.com)
+                        </p>
+                    </div>
+                )}
+
+                <div className="mt-4 space-y-6">
                     {/* Subject Field */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -5113,101 +5239,6 @@ const SuperAdmin = () => {
                         <p className="mt-2 text-xs text-gray-500">
                             💡 Tip: Use the toolbar above to format your email content. The editor supports rich text formatting.
                         </p>
-                    </div>
-
-                    {/* Send To Dropdown */}
-                    <div className="relative">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Send To <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => setSendToDropdownOpen(!sendToDropdownOpen)}
-                                className="w-full px-4 py-3 bg-white border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-left flex items-center justify-between hover:border-[#6C63FF] transition-colors shadow-sm"
-                            >
-                                <span className="text-gray-900 font-medium">{customEmailForm.sendTo}</span>
-                                <MdOutlineKeyboardArrowDown
-                                    className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${sendToDropdownOpen ? 'transform rotate-180' : ''}`}
-                                />
-                            </button>
-
-                            {sendToDropdownOpen && (
-                                <>
-                                    <div
-                                        className="fixed inset-0 z-10"
-                                        onClick={() => setSendToDropdownOpen(false)}
-                                    />
-                                    <div className="absolute z-20 w-full mt-2 bg-white border border-[#E5E7EB] rounded-lg shadow-xl overflow-hidden">
-                                        {[
-                                            { value: 'All', label: 'All', icon: '👥', description: 'Send to all users' },
-                                            { value: 'Active Users', label: 'Active Users', icon: '✅', description: 'Send to active users only' },
-                                            { value: 'Inactive Users', label: 'Inactive Users', icon: '⏸️', description: 'Send to inactive users only' },
-                                            { value: 'Custom Members', label: 'Custom Members', icon: '📧', description: 'Send to specific email addresses' }
-                                        ].map((option) => (
-                                            <button
-                                                key={option.value}
-                                                type="button"
-                                                onClick={() => {
-                                                    handleCustomEmailChange('sendTo', option.value);
-                                                    setSendToDropdownOpen(false);
-                                                }}
-                                                className={`w-full px-4 py-3 text-left hover:bg-[#F3F4F6] transition-colors flex items-start gap-3 ${customEmailForm.sendTo === option.value
-                                                    ? 'bg-[#EEF2FF] border-l-4 border-[#6C63FF]'
-                                                    : ''
-                                                    }`}
-                                            >
-                                                <span className="text-lg mt-0.5">{option.icon}</span>
-                                                <div className="flex-1">
-                                                    <div className={`font-normal ${customEmailForm.sendTo === option.value ? 'text-[#6C63FF]' : 'text-gray-900'}`}>
-                                                        {option.label}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 mt-0.5">
-                                                        {option.description}
-                                                    </div>
-                                                </div>
-                                                {customEmailForm.sendTo === option.value && (
-                                                    <span className="text-[#6C63FF] mt-1">
-                                                        <FaRegCheckCircle className="w-5 h-5" />
-                                                    </span>
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Custom Members Email Input */}
-                    {customEmailForm.sendTo === 'Custom Members' && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Email Addresses <span className="text-red-500">*</span>
-                                <span className="ml-2 text-xs text-gray-500 font-normal">(Separate multiple emails with commas)</span>
-                            </label>
-                            <input
-                                type="text"
-                                value={customEmailForm.customEmails}
-                                onChange={(e) => handleCustomEmailChange('customEmails', e.target.value)}
-                                className="w-full px-4 py-2 border border-[#E5E7EB] rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
-                                placeholder="email1@example.com, email2@example.com, email3@example.com"
-                            />
-                            <p className="mt-2 text-xs text-gray-500">
-                                Enter email addresses separated by commas (e.g., user1@example.com, user2@example.com)
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Send Button */}
-                    <div className="flex justify-end pt-4 border-t border-[#E5E7EB]">
-                        <button
-                            onClick={handleSendCustomEmail}
-                            disabled={loading || !customEmailForm.subject || !customEmailForm.body || (customEmailForm.sendTo === 'Custom Members' && !customEmailForm.customEmails.trim())}
-                            className="px-6 py-2 bg-[#6C63FF] text-white rounded-lg hover:bg-[#5A52E5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-                        >
-                            {loading ? 'Sending...' : 'Send Email'}
-                        </button>
                     </div>
                 </div>
             </div>
@@ -6020,12 +6051,36 @@ const SuperAdmin = () => {
     };
 
     const handleLogout = async () => {
-        localStorage.clear();
-        sessionStorage.clear();
-        setTimeout(() => {
-            navigate('/');
-            window.location.reload();
-        }, 1000);
+        const token = localStorage.getItem("token");
+        if (!token) {
+            Swal.fire({
+                title: "Error",
+                text: "Something went wrong",
+                icon: "error",
+                timer: 1500,
+            });
+            return;
+        }
+        try {
+            const result = await axios.post(`${baseUrl}/auth/logout`, {}, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (result.status === 200) {
+                Swal.fire({
+                    title: "Logged out successfully",
+                    text: "You will be redirected to the login page...",
+                    icon: "success",
+                    timer: 1500,
+                });
+            }
+        } catch (error) {
+            console.error("Error logging out:", error);
+        } finally {
+            localStorage.clear();
+            setTimeout(() => {
+                navigate("/login");
+            }, 1500);
+        }
     };
 
     // Modal Components
@@ -6049,7 +6104,7 @@ const SuperAdmin = () => {
                             <div className="flex flex-col gap-4">
                                 <div className='flex flex-row gap-2'>
                                     <div>
-                                        <img src={selectedUser.logoUrl ? `${import.meta.env.VITE_API_BASE_URL}/profile/getProfileImage/file/${selectedUser.logoUrl}` : "https://via.placeholder.com/150"} alt="Company Logo" className="w-[124px] h-[124px] border rounded-lg border-[#E5E7EB]" />
+                                        <img src={selectedUser.logoUrl ? `${baseUrl}/profile/getProfileImage/file/${selectedUser.logoUrl}` : "https://via.placeholder.com/150"} alt="Company Logo" className="w-[124px] h-[124px] border rounded-lg border-[#E5E7EB]" />
                                     </div>
 
                                     <div className='flex flex-col gap-2'>
@@ -6218,7 +6273,7 @@ const SuperAdmin = () => {
                                             {/* Employee Avatar and Name */}
                                             <div className="flex items-center space-x-3 mb-2">
                                                 <img
-                                                    src={employee.logoUrl ? `${import.meta.env.VITE_API_BASE_URL}/profile/getProfileImage/file/${employee.logoUrl}` : "https://via.placeholder.com/150"}
+                                                    src={employee.logoUrl ? `${baseUrl}/profile/getProfileImage/file/${employee.logoUrl}` : "https://via.placeholder.com/150"}
                                                     alt={employee.name}
                                                     className="w-10 h-10 rounded-full object-cover"
                                                 />
@@ -6306,7 +6361,7 @@ const SuperAdmin = () => {
                                     <div>
                                         Basic Information
                                         <div className="mt-4 flex flex-row gap-2">
-                                            <img src={selectedSupport.logoUrl ? `${import.meta.env.VITE_API_BASE_URL}/profile/getProfileImage/file/${selectedSupport.logoUrl}` : "https://via.placeholder.com/150"} alt="User" className="w-[120px] h-[120px] rounded-lg object-cover border border-[#E5E7EB]" />
+                                            <img src={selectedSupport.logoUrl ? `${baseUrl}/profile/getProfileImage/file/${selectedSupport.logoUrl}` : "https://via.placeholder.com/150"} alt="User" className="w-[120px] h-[120px] rounded-lg object-cover border border-[#E5E7EB]" />
                                             <div className="flex flex-col p-2">
                                                 <p className='text-2xl font-bold'>{selectedSupport.companyName}</p>
                                                 <div className='flex flex-row gap-4'>
@@ -6423,7 +6478,7 @@ const SuperAdmin = () => {
                                                     >
                                                         <div className="space-y-2">
                                                             <a
-                                                                href={`${import.meta.env.VITE_API_BASE_URL}/image/get_image_by_id/${attachment.fileUrl}`}
+                                                                href={`${baseUrl}/image/get_image_by_id/${attachment.fileUrl}`}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="text-white  hover:underline text-sm"
