@@ -5265,16 +5265,6 @@ const SuperAdmin = () => {
             <div className="mb-6">
                 <nav className="flex space-x-8">
                     <button
-                        onClick={() => { setSupportTab('active') }}
-                        className={`py-2 px-1 border-b-2 font-medium text-[16px] transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${supportTab === 'active'
-                            ? 'border-[#6C63FF] text-[#FFFFFF] rounded-t-lg bg-[#2563EB]'
-                            : 'border-transparent text-[#4B5563]'
-                            }`}
-                        title="View active support tickets"
-                    >
-                        Active Tickets
-                    </button>
-                    <button
                         onClick={() => { setSupportTab('Enterprise') }}
                         className={`py-2 px-1 border-b-2 font-medium text-[16px] transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${supportTab === 'Enterprise'
                             ? 'border-[#6C63FF] text-[#FFFFFF] rounded-t-lg bg-[#2563EB]'
@@ -5283,6 +5273,16 @@ const SuperAdmin = () => {
                         title="View Enterprise support tickets"
                     >
                         Enterprise Tickets
+                    </button>
+                    <button
+                        onClick={() => { setSupportTab('active') }}
+                        className={`py-2 px-1 border-b-2 font-medium text-[16px] transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${supportTab === 'active'
+                            ? 'border-[#6C63FF] text-[#FFFFFF] rounded-t-lg bg-[#2563EB]'
+                            : 'border-transparent text-[#4B5563]'
+                            }`}
+                        title="View active support tickets"
+                    >
+                        Active Tickets
                     </button>
                     <button
                         onClick={() => { setSupportTab('resolved') }}
