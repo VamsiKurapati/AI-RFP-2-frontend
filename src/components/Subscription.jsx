@@ -100,15 +100,19 @@ export default function Subscription({ plan }) {
               </li>
               <li className="flex items-center text-gray-700">
                 <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
-                Team Collaboration
+                Rich Text Editor & Team Collaboration
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                AI Magic Brush
               </li>
               <li className="flex items-center text-gray-700">
                 <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
                 Support
               </li>
             </ul>
-            <button 
-              className="w-full py-1.5 rounded-lg bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white text-sm font-medium shadow mt-auto transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]" 
+            <button
+              className="w-full py-1.5 rounded-lg bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white text-sm font-medium shadow mt-auto transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
               onClick={() => navigate("/payment")}
               title="Subscribe to Basic plan"
             >
@@ -117,8 +121,6 @@ export default function Subscription({ plan }) {
           </>
         ) : planName === "Pro" ? (
           <>
-
-
             <div className="flex items-center mb-4 relative bg-gray-200 rounded-full w-[120px] p-1 ml-[50%] -translate-x-1/2">
               <div
                 className={`absolute top-1 left-1 w-[55px] h-[22px] rounded-full bg-[#6C63FF] transition-transform duration-300 ${isYearlyp ? "translate-x-[58px]" : "translate-x-0"
@@ -171,9 +173,29 @@ export default function Subscription({ plan }) {
                 <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
                 Advance Compliance Check
               </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                AI Image Generation for Proposals
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                AI Chat Assist
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                AI Scoring System
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                AI Competitor Industry Insights
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                RFP Matchmaking
+              </li>
             </ul>
-            <button 
-              className="w-full py-1.5 rounded-lg bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white text-sm font-medium shadow mt-auto transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]" 
+            <button
+              className="w-full py-1.5 rounded-lg bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white text-sm font-medium shadow mt-auto transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
               onClick={() => navigate("/payment")}
               title="Subscribe to Pro plan"
             >
@@ -182,9 +204,7 @@ export default function Subscription({ plan }) {
           </>
         ) : planName === "Enterprise" ? (
           <>
-
             {!plan.isContact && (
-
               <div>
                 <div className="flex items-center mb-4 relative bg-gray-200 rounded-full w-[120px] p-1 ml-[50%] -translate-x-1/2">
                   <div
@@ -247,16 +267,16 @@ export default function Subscription({ plan }) {
             </ul>
 
             {plan.isContact ? (
-              <button 
-                className="w-full py-1.5 rounded-lg bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white text-sm font-medium shadow mt-auto transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]" 
+              <button
+                className="w-full py-1.5 rounded-lg bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white text-sm font-medium shadow mt-auto transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
                 onClick={() => navigate("/support-ticket")}
                 title="Contact us for Enterprise plan"
               >
                 Get in Touch
               </button>
             ) : (
-              <button 
-                className="w-full py-1.5 rounded-lg bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white text-sm font-medium shadow mt-auto transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]" 
+              <button
+                className="w-full py-1.5 rounded-lg bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white text-sm font-medium shadow mt-auto transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
                 onClick={() => navigate("/payment")}
                 title="Subscribe to Enterprise plan"
               >

@@ -1765,12 +1765,12 @@ const SuperAdmin = () => {
     const [addOnForm, setAddOnForm] = useState({
         name: '',
         description: '',
-        type: '',
+        // type: 'RFP Proposals Generation',
         quantity: '',
         price: '',
         popular: false
     });
-    const addOnTypes = ["RFP Proposals Generation", "Grant Proposal Generations", "RFP + Grant Proposal Generations"];
+    // const addOnTypes = ["RFP Proposals Generation", "Grant Proposal Generations", "RFP + Grant Proposal Generations"];
 
     useEffect(() => {
         if (activeTab !== 'plan-management') {
@@ -2794,7 +2794,13 @@ const SuperAdmin = () => {
                                 <span className="text-green-500 p-1">
                                     <FaRegCheckCircle className="w-4 h-4" />
                                 </span>
-                                Team Collaboration
+                                Rich Text Editor & Team Collaboration
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                AI Magic Brush
                             </li>
                             <li className="flex items-center text-gray-700">
                                 <span className="text-green-500 p-1">
@@ -2942,6 +2948,36 @@ const SuperAdmin = () => {
                                     <FaRegCheckCircle className="w-4 h-4" />
                                 </span>
                                 Advance Compliance Check
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                AI Image Generation for Proposals
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                AI Chat Assist
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                AI Scoring System
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                AI Competitor Industry Insights
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                RFP Matchmaking
                             </li>
                         </ul>
                     </>
@@ -3554,7 +3590,7 @@ const SuperAdmin = () => {
         setAddOnForm({
             name: addOn.name || addOn.title || '',
             description: addOn.description || '',
-            type: addOn.type || '',
+            // type: addOn.type || '',
             quantity: addOn.quantity || '',
             price: addOn.price || addOn.monthlyPrice || '',
             popular: addOn.popular || false
@@ -3569,7 +3605,7 @@ const SuperAdmin = () => {
         setAddOnForm({
             name: '',
             description: '',
-            type: '',
+            // type: '',
             quantity: '',
             price: '',
             popular: false
@@ -3578,7 +3614,7 @@ const SuperAdmin = () => {
 
     // Handle add-on form submission
     const handleAddOnSubmit = async () => {
-        if (!addOnForm.name.trim() || !addOnForm.type || !addOnForm.quantity || !addOnForm.price) {
+        if (!addOnForm.name.trim() || !addOnForm.quantity || !addOnForm.price) {
             Swal.fire({
                 title: "Please fill in all required fields",
                 icon: "warning",
@@ -3605,7 +3641,7 @@ const SuperAdmin = () => {
             const payload = {
                 name: addOnForm.name.trim(),
                 description: addOnForm.description.trim(),
-                type: addOnForm.type,
+                // type: addOnForm.type,
                 quantity: parseInt(addOnForm.quantity),
                 price: parseFloat(addOnForm.price),
                 popular: addOnForm.popular
@@ -3760,12 +3796,12 @@ const SuperAdmin = () => {
                                             )}
 
                                             <div className="mb-4 flex-grow">
-                                                {addOn.type && (
+                                                {/* {addOn.type && (
                                                     <div className="mb-2">
                                                         <span className="text-sm font-medium text-gray-700">Type: </span>
                                                         <span className="text-sm text-gray-600">{addOn.type}</span>
                                                     </div>
-                                                )}
+                                                )} */}
                                                 {addOn.quantity && (
                                                     <div>
                                                         <span className="text-sm font-medium text-gray-700">Quantity: </span>
@@ -3816,6 +3852,22 @@ const SuperAdmin = () => {
 
                             <div className="px-6 pb-6 space-y-6 overflow-y-auto mt-4">
                                 <div className="flex flex-col">
+                                    <label className="text-md font-bold text-[#4B5563] mb-1">Add-On Type</label>
+                                    {/* <select
+                                        value={addOnForm.type}
+                                        onChange={(e) => setAddOnForm(prev => ({ ...prev, type: e.target.value }))}
+                                        className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                        disabled={addOnsLoading}
+                                    >
+                                        <option value="">Select add-on type</option>
+                                        {addOnTypes.map((type) => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select> */}
+                                    <span className="text-md text-gray-600">RFP Proposals Generation</span>
+                                </div>
+
+                                <div className="flex flex-col">
                                     <label className="text-sm font-medium text-[#4B5563] mb-1">Add-On Name *</label>
                                     <input
                                         type="text"
@@ -3837,21 +3889,6 @@ const SuperAdmin = () => {
                                         className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
                                         disabled={addOnsLoading}
                                     />
-                                </div>
-
-                                <div className="flex flex-col">
-                                    <label className="text-sm font-medium text-[#4B5563] mb-1">Add-On Type *</label>
-                                    <select
-                                        value={addOnForm.type}
-                                        onChange={(e) => setAddOnForm(prev => ({ ...prev, type: e.target.value }))}
-                                        className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
-                                        disabled={addOnsLoading}
-                                    >
-                                        <option value="">Select add-on type</option>
-                                        {addOnTypes.map((type) => (
-                                            <option key={type} value={type}>{type}</option>
-                                        ))}
-                                    </select>
                                 </div>
 
                                 <div className="flex flex-col">
@@ -6078,7 +6115,7 @@ const SuperAdmin = () => {
         } finally {
             localStorage.clear();
             setTimeout(() => {
-                navigate("/login");
+                navigate("/");
             }, 1500);
         }
     };

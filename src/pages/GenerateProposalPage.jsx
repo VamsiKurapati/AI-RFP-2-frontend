@@ -126,7 +126,7 @@ const GenerateProposalPage = () => {
       <div className="w-full mx-auto px-8 md:px-12 mt-20">
         <div className="w-full flex items-center mb-6">
           <button
-            className="bg-white rounded-lg p-2 mr-4 text-[#2563EB] hover:bg-gray-100 transition-colors"
+            className="bg-white rounded-lg p-2 mt-1 mr-4 text-[#2563EB] hover:bg-gray-100 transition-colors"
             onClick={() => navigate(-1)}
             title="Go back to previous page"
           >
@@ -173,7 +173,7 @@ const GenerateProposalPage = () => {
                 </div>
                 <div className="mb-1">
                   <div className="text-[16px] font-medium text-[#6B7280]">About</div>
-                  <div className="text-[#111827] text-[20px] leading-snug">{companyData?.profile?.bio}</div>
+                  <div className="text-[#111827] text-[20px] leading-snug line-clamp-3">{companyData?.profile?.bio}</div>
                 </div>
               </div>
 

@@ -47,7 +47,7 @@ const NavbarComponent = () => {
     } finally {
       localStorage.clear();
       setTimeout(() => {
-        navigate("/login");
+        navigate("/");
       }, 1500);
     }
   };
