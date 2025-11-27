@@ -222,6 +222,29 @@ const SubscriptionManagementModal = React.memo(({
                         )} */}
 
                         <div className="flex flex-col">
+                            <label className="text-sm font-medium text-[#4B5563] mb-1">Max Magic Brush Usage</label>
+                            <input
+                                type="number"
+                                value={form.maxMagicBrushUsage ?? ''}
+                                onChange={(e) => onChange('maxMagicBrushUsage', e.target.value)}
+                                placeholder="Enter max magic brush usage"
+                                className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                            />
+                        </div>
+                        {form.planName !== 'Basic' && (
+                            <div className="flex flex-col">
+                                <label className="text-sm font-medium text-[#4B5563] mb-1">Max Image Generation Usage</label>
+                                <input
+                                    type="number"
+                                    value={form.maxImageGenerationUsage ?? ''}
+                                    onChange={(e) => onChange('maxImageGenerationUsage', e.target.value)}
+                                    placeholder="Enter max image generation usage"
+                                    className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
+                                />
+                            </div>
+                        )}
+
+                        <div className="flex flex-col">
                             <label className="text-sm font-medium text-[#4B5563] mb-1">Note (optional)</label>
                             <textarea
                                 value={note}
@@ -330,7 +353,9 @@ const SuperAdmin = () => {
         maxEditors: '',
         maxViewers: '',
         maxRFPProposalGenerations: '',
-        maxGrantProposalGenerations: ''
+        maxGrantProposalGenerations: '',
+        maxMagicBrushUsage: '',
+        maxImageGenerationUsage: ''
     }), []);
     const [subscriptionForm, setSubscriptionForm] = useState(createDefaultSubscriptionForm);
     const [subscriptionActionLoading, setSubscriptionActionLoading] = useState(false);
@@ -947,6 +972,8 @@ const SuperAdmin = () => {
             const maxViewers = parseOptionalNumber(subscriptionForm.maxViewers);
             const maxRfp = parseOptionalNumber(subscriptionForm.maxRFPProposalGenerations);
             const maxGrant = parseOptionalNumber(subscriptionForm.maxGrantProposalGenerations);
+            const maxMagicBrush = parseOptionalNumber(subscriptionForm.maxMagicBrushUsage);
+            const maxImageGeneration = parseOptionalNumber(subscriptionForm.maxImageGenerationUsage);
 
             if (maxEditors !== undefined) {
                 payload.maxEditors = maxEditors;
@@ -959,6 +986,12 @@ const SuperAdmin = () => {
             }
             if (maxGrant !== undefined) {
                 payload.maxGrantProposalGenerations = maxGrant;
+            }
+            if (maxMagicBrush !== undefined) {
+                payload.maxMagicBrushUsage = maxMagicBrush;
+            }
+            if (maxImageGeneration !== undefined && planName !== 'Basic') {
+                payload.maxImageGenerationUsage = maxImageGeneration;
             }
         }
 

@@ -36,6 +36,8 @@ const ShowCustomDetails = () => {
       maxViewers: "",
       maxRFPProposalGenerations: "",
       maxGrantProposalGenerations: "",
+      maxMagicBrushUsage: "",
+      maxImageGenerationUsage: "",
     }
   );
   const [isFormDataEditing, setIsFormDataEditing] = useState(false);
@@ -75,11 +77,6 @@ const ShowCustomDetails = () => {
     setIsFormDataEditing(false);
     setEditFormData(null);
   };
-
-
-
-
-
 
   const handleCustomDelete = (id) => {
     axios.delete(`${baseUrl}/admin/deleteCustomPlan/${id}`, {
@@ -123,14 +120,16 @@ const ShowCustomDetails = () => {
     maxViewers: "",
     maxRFPProposalGenerations: "",
     maxGrantProposalGenerations: "",
+    maxMagicBrushUsage: "",
+    maxImageGenerationUsage: "",
   });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     // Validate number inputs to prevent negatives and null
-    const isNumberField = ['maxEditors', 'maxViewers', 'maxRFPProposalGenerations', 'maxGrantProposalGenerations', 'price'].includes(name);
+    const isNumberField = ['maxEditors', 'maxViewers', 'maxRFPProposalGenerations', 'maxGrantProposalGenerations', 'price', 'maxMagicBrushUsage', 'maxImageGenerationUsage'].includes(name);
     const validatedValue = isNumberField ? validateNumberInput(value, name !== 'price') : value;
-    
+
     setFormData((prev) => ({
       ...prev,
       [name]: validatedValue,
@@ -148,6 +147,8 @@ const ShowCustomDetails = () => {
       "maxViewers",
       "maxRFPProposalGenerations",
       "maxGrantProposalGenerations",
+      "maxMagicBrushUsage",
+      "maxImageGenerationUsage",
     ];
     for (let field of requiredFields) {
       if (!formData[field] || formData[field].toString().trim() === "") {
@@ -184,6 +185,8 @@ const ShowCustomDetails = () => {
           maxViewers: "",
           maxRFPProposalGenerations: "",
           maxGrantProposalGenerations: "",
+          maxMagicBrushUsage: "",
+          maxImageGenerationUsage: "",
         });
         setCustomToggle(false);
       })
@@ -296,7 +299,9 @@ const ShowCustomDetails = () => {
     maxRFPProposalGenerations,
     maxGrantProposalGenerations,
     transaction_id,  //transaction_id
-    companyName
+    companyName,
+    maxMagicBrushUsage,
+    maxImageGenerationUsage,
   ) => {
     const payload = {
       email,
@@ -308,15 +313,16 @@ const ShowCustomDetails = () => {
       maxGrantProposalGenerations,
       transaction_id,
       companyName,
+      maxMagicBrushUsage,
+      maxImageGenerationUsage,
     };
 
     setLoading(true);
-    axios
-      .post(`${baseUrl}/admin/createCustomPlan`, payload, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
+    axios.post(`${baseUrl}/admin/createCustomPlan`, payload, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    })
       .then(() => {
         Swal.fire({
           title: "Custom plan submitted successfully!",
@@ -711,12 +717,13 @@ const ShowCustomDetails = () => {
                               </>
                             ) : (
                               <>
-                                <p><strong>Amount:</strong> ${plan.price}</p>
-                                <p><strong>Max Editors:</strong> {plan.maxEditors}</p>
-                                <p><strong>Max Viewers:</strong> {plan.maxViewers}</p>
-                                <p><strong>Max RFP:</strong> {plan.maxRFPProposalGenerations}</p>
-                                <p><strong>Max Grant:</strong> {plan.maxGrantProposalGenerations}</p>
-
+                                <p><strong>Amount:</strong> ${plan?.price || "N/A"}</p>
+                                <p><strong>Max Editors:</strong> {plan?.maxEditors || "N/A"}</p>
+                                <p><strong>Max Viewers:</strong> {plan?.maxViewers || "N/A"}</p>
+                                <p><strong>Max RFP:</strong> {plan?.maxRFPProposalGenerations || "N/A"}</p>
+                                <p><strong>Max Grant:</strong> {plan?.maxGrantProposalGenerations || "N/A"}</p>
+                                <p><strong>Max Magic Brush Usage:</strong> {plan?.maxMagicBrushUsage || "N/A"}</p>
+                                <p><strong>Max Image Generation Usage:</strong> {plan?.maxImageGenerationUsage || "N/A"}</p>
                               </>
                             )}
                           </div>
@@ -745,6 +752,8 @@ const ShowCustomDetails = () => {
                                   maxViewers: plan.maxViewers,
                                   maxRFPProposalGenerations: plan.maxRFPProposalGenerations,
                                   maxGrantProposalGenerations: plan.maxGrantProposalGenerations,
+                                  maxMagicBrushUsage: plan.maxMagicBrushUsage,
+                                  maxImageGenerationUsage: plan.maxImageGenerationUsage,
                                 });
                               }
                             }}
@@ -774,7 +783,9 @@ const ShowCustomDetails = () => {
                                 plan.maxRFPProposalGenerations,
                                 plan.maxGrantProposalGenerations,
                                 transaction_id,
-                                plan.companyName
+                                plan.companyName,
+                                plan.maxMagicBrushUsage,
+                                plan.maxImageGenerationUsage,
                               )
                             }
                             className="px-4 py-2 bg-gradient-to-b from-[#6C63FF] to-[#3F73BD] text-white rounded-lg transition-all duration-200 hover:from-[#3F73BD] hover:to-[#6C63FF] shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98] text-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -787,8 +798,6 @@ const ShowCustomDetails = () => {
                       </td>
                     </tr>
                   )}
-
-
                 </React.Fragment>
               ))
             ) : (
@@ -967,6 +976,48 @@ const ShowCustomDetails = () => {
                         className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="Enter Max Grant Generations"
                         title="Enter the maximum number of grant proposal generations allowed"
+                      />
+                    </div>
+
+                    {/* Max Magic Brush Usage */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        Max Magic Brush Usage
+                      </label>
+                      <input
+                        type="number"
+                        name="maxMagicBrushUsage"
+                        value={formData.maxMagicBrushUsage}
+                        onChange={handleChange}
+                        onKeyDown={(e) => {
+                          if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                            e.preventDefault();
+                          }
+                        }}
+                        className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="Enter Max Magic Brush Usage"
+                        title="Enter the maximum number of magic brush usage allowed for this plan"
+                      />
+                    </div>
+
+                    {/* Max Image Generation Usage */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        Max Image Generation Usage
+                      </label>
+                      <input
+                        type="number"
+                        name="maxImageGenerationUsage"
+                        value={formData.maxImageGenerationUsage}
+                        onChange={handleChange}
+                        onKeyDown={(e) => {
+                          if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                            e.preventDefault();
+                          }
+                        }}
+                        className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="Enter Max Image Generation Usage"
+                        title="Enter the maximum number of image generation usage allowed for this plan"
                       />
                     </div>
                   </div>
