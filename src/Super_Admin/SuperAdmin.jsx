@@ -51,6 +51,7 @@ import ToastContainer from '../pages/ToastContainer';
 import { toast } from 'react-toastify';
 import Card from '../components/SuperAdminComponents/Card';
 import Swal from 'sweetalert2';
+import { validateNumberInput } from '../utils/sanitization';
 
 
 import proposalimg from '../assets/superAdmin/proposal.png';
@@ -2639,18 +2640,24 @@ const SuperAdmin = () => {
                                         <input
                                             type="number"
                                             value={editingPlans[plan._id].editValue.maxRFPProposalGenerations}
-                                            onChange={(e) =>
+                                            onChange={(e) => {
+                                                const validated = validateNumberInput(e.target.value, true);
                                                 setEditingPlans((prev) => ({
                                                     ...prev,
                                                     [plan._id]: {
                                                         ...prev[plan._id],
                                                         editValue: {
                                                             ...prev[plan._id].editValue,
-                                                            maxRFPProposalGenerations: e.target.value,
+                                                            maxRFPProposalGenerations: validated,
                                                         },
                                                     },
-                                                }))
-                                            }
+                                                }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
                                             className="w-1/2 border rounded-lg px-2 py-1"
                                         />
                                         AI - RFP Proposal Generations
@@ -2742,18 +2749,24 @@ const SuperAdmin = () => {
                                         <input
                                             type="number"
                                             value={editingPlans[plan._id].editValue.maxEditors}
-                                            onChange={(e) =>
+                                            onChange={(e) => {
+                                                const validated = validateNumberInput(e.target.value, true);
                                                 setEditingPlans((prev) => ({
                                                     ...prev,
                                                     [plan._id]: {
                                                         ...prev[plan._id],
                                                         editValue: {
                                                             ...prev[plan._id].editValue,
-                                                            maxEditors: e.target.value,
+                                                            maxEditors: validated,
                                                         },
                                                     },
-                                                }))
-                                            }
+                                                }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
                                             className="w-1/2 border rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                             placeholder="Max editors"
                                             title="Enter maximum number of editors"
@@ -2762,18 +2775,24 @@ const SuperAdmin = () => {
                                         <input
                                             type="number"
                                             value={editingPlans[plan._id].editValue.maxViewers}
-                                            onChange={(e) =>
+                                            onChange={(e) => {
+                                                const validated = validateNumberInput(e.target.value, true);
                                                 setEditingPlans((prev) => ({
                                                     ...prev,
                                                     [plan._id]: {
                                                         ...prev[plan._id],
                                                         editValue: {
                                                             ...prev[plan._id].editValue,
-                                                            maxViewers: e.target.value,
+                                                            maxViewers: validated,
                                                         },
                                                     },
-                                                }))
-                                            }
+                                                }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
                                             className="w-1/2 border rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                             placeholder="Max viewers"
                                             title="Enter maximum number of viewers"
@@ -2794,7 +2813,13 @@ const SuperAdmin = () => {
                                 <span className="text-green-500 p-1">
                                     <FaRegCheckCircle className="w-4 h-4" />
                                 </span>
-                                Rich Text Editor & Team Collaboration
+                                Rich Text Editor
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                Team Collaboration
                             </li>
                             <li className="flex items-center text-gray-700">
                                 <span className="text-green-500 p-1">
@@ -2878,18 +2903,24 @@ const SuperAdmin = () => {
                                         <input
                                             type="number"
                                             value={editingPlans[plan._id].editValue.maxRFPProposalGenerations}
-                                            onChange={(e) =>
+                                            onChange={(e) => {
+                                                const validated = validateNumberInput(e.target.value, true);
                                                 setEditingPlans((prev) => ({
                                                     ...prev,
                                                     [plan._id]: {
                                                         ...prev[plan._id],
                                                         editValue: {
                                                             ...prev[plan._id].editValue,
-                                                            maxRFPProposalGenerations: e.target.value,
+                                                            maxRFPProposalGenerations: validated,
                                                         },
                                                     },
-                                                }))
-                                            }
+                                                }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
                                             className="w-20 border rounded-lg px-2 py-1 text-center"
                                         />
                                         AI - RFP Proposal Generations
@@ -2912,7 +2943,20 @@ const SuperAdmin = () => {
                                 {editingPlans[plan._id] ? (
                                     <>
                                         Up to
-                                        <input type="number" value={editingPlans[plan._id].editValue.maxGrantProposalGenerations} onChange={(e) => setEditingPlans((prev) => ({ ...prev, [plan._id]: { ...prev[plan._id], editValue: { ...prev[plan._id].editValue, maxGrantProposalGenerations: e.target.value } } }))} className="w-1/2 border rounded-lg px-2 py-1" />
+                                        <input
+                                            type="number"
+                                            value={editingPlans[plan._id].editValue.maxGrantProposalGenerations}
+                                            onChange={(e) => {
+                                                const validated = validateNumberInput(e.target.value, true);
+                                                setEditingPlans((prev) => ({ ...prev, [plan._id]: { ...prev[plan._id], editValue: { ...prev[plan._id].editValue, maxGrantProposalGenerations: validated } } }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            className="w-1/2 border rounded-lg px-2 py-1"
+                                        />
                                         AI - Grant Proposal Generations
                                     </>
                                 ) : (
@@ -2929,9 +2973,39 @@ const SuperAdmin = () => {
                                 {editingPlans[plan._id] ? (
                                     <>
                                         Up to
-                                        <input type="number" value={editingPlans[plan._id].editValue.maxEditors} onChange={(e) => setEditingPlans((prev) => ({ ...prev, [plan._id]: { ...prev[plan._id], editValue: { ...prev[plan._id].editValue, maxEditors: e.target.value } } }))} className="w-1/2 border rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" placeholder="Max editors" title="Enter maximum number of editors" />
+                                        <input
+                                            type="number"
+                                            value={editingPlans[plan._id].editValue.maxEditors}
+                                            onChange={(e) => {
+                                                const validated = validateNumberInput(e.target.value, true);
+                                                setEditingPlans((prev) => ({ ...prev, [plan._id]: { ...prev[plan._id], editValue: { ...prev[plan._id].editValue, maxEditors: validated } } }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            className="w-1/2 border rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                            placeholder="Max editors"
+                                            title="Enter maximum number of editors"
+                                        />
                                         Editors,
-                                        <input type="number" value={editingPlans[plan._id].editValue.maxViewers} onChange={(e) => setEditingPlans((prev) => ({ ...prev, [plan._id]: { ...prev[plan._id], editValue: { ...prev[plan._id].editValue, maxViewers: e.target.value } } }))} className="w-1/2 border rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" placeholder="Max viewers" title="Enter maximum number of viewers" />
+                                        <input
+                                            type="number"
+                                            value={editingPlans[plan._id].editValue.maxViewers}
+                                            onChange={(e) => {
+                                                const validated = validateNumberInput(e.target.value, true);
+                                                setEditingPlans((prev) => ({ ...prev, [plan._id]: { ...prev[plan._id], editValue: { ...prev[plan._id].editValue, maxViewers: validated } } }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            className="w-1/2 border rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                            placeholder="Max viewers"
+                                            title="Enter maximum number of viewers"
+                                        />
                                         Viewers, Unlimited Members
                                     </>
                                 ) : (
@@ -3898,7 +3972,15 @@ const SuperAdmin = () => {
                                         min="1"
                                         step="1"
                                         value={addOnForm.quantity}
-                                        onChange={(e) => setAddOnForm(prev => ({ ...prev, quantity: e.target.value }))}
+                                        onChange={(e) => {
+                                            const validated = validateNumberInput(e.target.value, false);
+                                            setAddOnForm(prev => ({ ...prev, quantity: validated }));
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                                e.preventDefault();
+                                            }
+                                        }}
                                         placeholder="Enter quantity (e.g., 50)"
                                         className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
                                         disabled={addOnsLoading}
@@ -3912,7 +3994,15 @@ const SuperAdmin = () => {
                                         step="0.01"
                                         min="0"
                                         value={addOnForm.price}
-                                        onChange={(e) => setAddOnForm(prev => ({ ...prev, price: e.target.value }))}
+                                        onChange={(e) => {
+                                            const validated = validateNumberInput(e.target.value, true);
+                                            setAddOnForm(prev => ({ ...prev, price: validated }));
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                                e.preventDefault();
+                                            }
+                                        }}
                                         placeholder="Enter price"
                                         className="border border-[#E5E7EB] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]"
                                         disabled={addOnsLoading}

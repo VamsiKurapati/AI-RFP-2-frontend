@@ -157,3 +157,60 @@ export const escapeHtml = (text) => {
 
     return text.replace(/[&<>"'/]/g, (char) => map[char]);
 };
+
+/**
+ * Validates and sanitizes number input to prevent negatives and null values
+ * @param {string|number} value - The input value to validate
+ * @param {boolean} allowZero - Whether to allow zero (default: true)
+ * @returns {string} - Validated number as string, or empty string if invalid
+ */
+export const validateNumberInput = (value, allowZero = true) => {
+    // Handle null, undefined, or empty string
+    if (value === null || value === undefined || value === '') {
+        return '';
+    }
+
+    // Convert to string for processing
+    const stringValue = String(value).trim();
+
+    // If empty after trimming, return empty string
+    if (stringValue === '') {
+        return '';
+    }
+
+    // Remove any non-numeric characters except decimal point and minus sign
+    // But we'll reject minus sign later
+    let cleaned = stringValue.replace(/[^0-9.]/g, '');
+
+    // Remove multiple decimal points, keep only the first one
+    const parts = cleaned.split('.');
+    if (parts.length > 2) {
+        cleaned = parts[0] + '.' + parts.slice(1).join('');
+    }
+
+    // If empty after cleaning, return empty string
+    if (cleaned === '' || cleaned === '.') {
+        return '';
+    }
+
+    // Parse the number
+    const numValue = parseFloat(cleaned);
+
+    // Check if it's a valid number
+    if (isNaN(numValue)) {
+        return '';
+    }
+
+    // Prevent negative numbers
+    if (numValue < 0) {
+        return '';
+    }
+
+    // If zero is not allowed and value is zero, return empty string
+    if (!allowZero && numValue === 0) {
+        return '';
+    }
+
+    // Return the valid number as string, preserving decimal places if present
+    return cleaned;
+};

@@ -3,6 +3,7 @@ import { FaSpinner } from 'react-icons/fa';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import handleWordGeneration from './Generate_Word';
+import { validateNumberInput } from '../utils/sanitization';
 
 const GrantProposalForm = ({
     selectedGrant,
@@ -33,11 +34,16 @@ const GrantProposalForm = ({
     });
 
     const updateBudgetField = (field, value) => {
+        // Validate number inputs to prevent negatives and null
+        const validatedValue = (field === 'total_project_cost' || field === 'total_requested_amount')
+            ? validateNumberInput(value, true)
+            : value;
+
         setGrantProposalData(prev => ({
             ...prev,
             budget: {
                 ...prev.budget,
-                [field]: value
+                [field]: validatedValue
             }
         }));
     };
@@ -271,6 +277,12 @@ const GrantProposalForm = ({
                                     step="0.01"
                                     value={grantProposalData.budget.total_project_cost}
                                     onChange={(e) => updateBudgetField('total_project_cost', e.target.value)}
+                                    onKeyDown={(e) => {
+                                        // Prevent negative sign, 'e', 'E', '+'
+                                        if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                            e.preventDefault();
+                                        }
+                                    }}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                     placeholder="Enter Total Project Cost..."
                                     disabled={isGenerating || isFetchingGrantProposal}
@@ -287,6 +299,12 @@ const GrantProposalForm = ({
                                     step="0.01"
                                     value={grantProposalData.budget.total_requested_amount}
                                     onChange={(e) => updateBudgetField('total_requested_amount', e.target.value)}
+                                    onKeyDown={(e) => {
+                                        // Prevent negative sign, 'e', 'E', '+'
+                                        if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                            e.preventDefault();
+                                        }
+                                    }}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                     placeholder="Enter Amount Requesting From Funder..."
                                     disabled={isGenerating || isFetchingGrantProposal}

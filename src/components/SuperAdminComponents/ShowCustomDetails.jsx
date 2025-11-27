@@ -7,6 +7,7 @@ import {
   MdOutlineVisibility,
 } from "react-icons/md";
 import Swal from "sweetalert2";
+import { validateNumberInput } from "../../utils/sanitization";
 
 const baseUrl = `${import.meta.env.VITE_API_BASE_URL}`;
 
@@ -126,9 +127,13 @@ const ShowCustomDetails = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Validate number inputs to prevent negatives and null
+    const isNumberField = ['maxEditors', 'maxViewers', 'maxRFPProposalGenerations', 'maxGrantProposalGenerations', 'price'].includes(name);
+    const validatedValue = isNumberField ? validateNumberInput(value, name !== 'price') : value;
+    
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: validatedValue,
     }));
   };
 
@@ -634,7 +639,15 @@ const ShowCustomDetails = () => {
                                     value={editFormData.maxEditors}
                                     placeholder={plan.maxEditors}
                                     className="w-full border rounded-lg px-3 py-2 mt-1 text-gray-700 focus:ring-2 focus:ring-blue-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                    onChange={(e) => setEditFormData((prev) => ({ ...prev, maxEditors: e.target.value }))}
+                                    onChange={(e) => {
+                                      const validated = validateNumberInput(e.target.value, true);
+                                      setEditFormData((prev) => ({ ...prev, maxEditors: validated }));
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                        e.preventDefault();
+                                      }
+                                    }}
                                     title="Enter the maximum number of editors allowed"
                                   />
                                 </p>
@@ -645,7 +658,15 @@ const ShowCustomDetails = () => {
                                     value={editFormData.maxViewers}
                                     placeholder={plan.maxViewers}
                                     className="w-full border rounded-lg px-3 py-2 mt-1 text-gray-700 focus:ring-2 focus:ring-blue-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                    onChange={(e) => setEditFormData((prev) => ({ ...prev, maxViewers: e.target.value }))}
+                                    onChange={(e) => {
+                                      const validated = validateNumberInput(e.target.value, true);
+                                      setEditFormData((prev) => ({ ...prev, maxViewers: validated }));
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                        e.preventDefault();
+                                      }
+                                    }}
                                     title="Enter the maximum number of viewers allowed"
                                   />
                                 </p>
@@ -656,7 +677,15 @@ const ShowCustomDetails = () => {
                                     value={editFormData.maxRFPProposalGenerations}
                                     placeholder={plan.maxRFPProposalGenerations}
                                     className="w-full border rounded-lg px-3 py-2 mt-1 text-gray-700 focus:ring-2 focus:ring-blue-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                    onChange={(e) => setEditFormData((prev) => ({ ...prev, maxRFPProposalGenerations: e.target.value }))}
+                                    onChange={(e) => {
+                                      const validated = validateNumberInput(e.target.value, true);
+                                      setEditFormData((prev) => ({ ...prev, maxRFPProposalGenerations: validated }));
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                        e.preventDefault();
+                                      }
+                                    }}
                                     title="Enter the maximum number of RFP proposal generations allowed"
                                   />
                                 </p>
@@ -667,7 +696,15 @@ const ShowCustomDetails = () => {
                                     value={editFormData.maxGrantProposalGenerations}
                                     placeholder={plan.maxGrantProposalGenerations}
                                     className="w-full border rounded-lg px-3 py-2 mt-1 text-gray-700 focus:ring-2 focus:ring-blue-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                    onChange={(e) => setEditFormData((prev) => ({ ...prev, maxGrantProposalGenerations: e.target.value }))}
+                                    onChange={(e) => {
+                                      const validated = validateNumberInput(e.target.value, true);
+                                      setEditFormData((prev) => ({ ...prev, maxGrantProposalGenerations: validated }));
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                        e.preventDefault();
+                                      }
+                                    }}
                                     title="Enter the maximum number of grant proposal generations allowed"
                                   />
                                 </p>
@@ -814,10 +851,17 @@ const ShowCustomDetails = () => {
                         Price
                       </label>
                       <input
-                        type="text"
+                        type="number"
                         name="price"
                         value={formData.price}
                         onChange={handleChange}
+                        onKeyDown={(e) => {
+                          if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                            e.preventDefault();
+                          }
+                        }}
+                        step="0.01"
+                        min="0"
                         className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="Enter Price"
                         title="Enter the subscription price for this plan"
@@ -852,6 +896,11 @@ const ShowCustomDetails = () => {
                         name="maxEditors"
                         value={formData.maxEditors}
                         onChange={handleChange}
+                        onKeyDown={(e) => {
+                          if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                            e.preventDefault();
+                          }
+                        }}
                         className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="Enter Number Of Editors"
                         title="Enter the maximum number of editors allowed for this plan"
@@ -868,6 +917,11 @@ const ShowCustomDetails = () => {
                         name="maxViewers"
                         value={formData.maxViewers}
                         onChange={handleChange}
+                        onKeyDown={(e) => {
+                          if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                            e.preventDefault();
+                          }
+                        }}
                         className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="Enter Number Of Viewers"
                         title="Enter the maximum number of viewers allowed for this plan"
@@ -884,6 +938,11 @@ const ShowCustomDetails = () => {
                         name="maxRFPProposalGenerations"
                         value={formData.maxRFPProposalGenerations}
                         onChange={handleChange}
+                        onKeyDown={(e) => {
+                          if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                            e.preventDefault();
+                          }
+                        }}
                         className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="Enter Max RFP Generations"
                         title="Enter the maximum number of RFP proposal generations allowed"
@@ -900,6 +959,11 @@ const ShowCustomDetails = () => {
                         name="maxGrantProposalGenerations"
                         value={formData.maxGrantProposalGenerations}
                         onChange={handleChange}
+                        onKeyDown={(e) => {
+                          if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                            e.preventDefault();
+                          }
+                        }}
                         className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="Enter Max Grant Generations"
                         title="Enter the maximum number of grant proposal generations allowed"

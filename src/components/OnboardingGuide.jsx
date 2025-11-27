@@ -977,6 +977,10 @@ const OnboardingGuide = () => {
                         backgroundColor: '#FFFFFF',
                         zIndex: 10000,
                     },
+                    spotlight: {
+                        border: '3px solid #2563EB',
+                        borderRadius: 8,
+                    },
                     tooltip: {
                         borderRadius: 8,
                         padding: 20,

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { FaRegCheckCircle } from "react-icons/fa";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { validateNumberInput } from "../../utils/sanitization";
 
 const baseUrl = `${import.meta.env.VITE_API_BASE_URL}/admin`;
 
@@ -142,7 +143,15 @@ const PricingCard = ({ id, plan, price, features, popular, highlightFirst, onPri
                 <input
                     type="number"
                     value={editPrice}
-                    onChange={(e) => setEditPrice(Number(e.target.value))}
+                    onChange={(e) => {
+                        const validated = validateNumberInput(e.target.value, true);
+                        setEditPrice(validated === '' ? '' : Number(validated));
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                            e.preventDefault();
+                        }
+                    }}
                     className="text-2xl font-bold mb-4 border rounded-lg px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-[#6C63FF] disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="Enter price"
                     disabled={loading}

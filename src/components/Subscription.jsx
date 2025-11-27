@@ -100,7 +100,11 @@ export default function Subscription({ plan }) {
               </li>
               <li className="flex items-center text-gray-700">
                 <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
-                Rich Text Editor & Team Collaboration
+                Rich Text Editor
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                Team Collaboration
               </li>
               <li className="flex items-center text-gray-700">
                 <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
