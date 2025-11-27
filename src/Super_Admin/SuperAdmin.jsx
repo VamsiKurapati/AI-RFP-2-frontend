@@ -26,8 +26,13 @@ import {
     MdOutlinePhone,
     MdOutlinePermContactCalendar,
     MdOutlineEdit,
-    MdOutlinePowerSettingsNew
+    MdOutlinePowerSettingsNew,
+    MdOutlineSubscriptions,
+    MdOutlinePriceChange,
+    MdOutlineAddShoppingCart
 } from 'react-icons/md';
+import { FaRegCheckCircle } from "react-icons/fa";
+import { LuCrown } from "react-icons/lu";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -41,8 +46,6 @@ import CodeBlock from '@tiptap/extension-code-block';
 import Blockquote from '@tiptap/extension-blockquote';
 import Image from '@tiptap/extension-image';
 import { IoLogoLinkedin } from "react-icons/io";
-import { LuCrown } from "react-icons/lu";
-import { FaRegCheckCircle } from "react-icons/fa";
 
 import axios from 'axios';
 import { useNavigate, Navigate } from "react-router-dom";
@@ -2492,6 +2495,8 @@ const SuperAdmin = () => {
                 maxViewers: plan.maxViewers,
                 maxRFPProposalGenerations: plan.maxRFPProposalGenerations,
                 maxGrantProposalGenerations: plan.maxGrantProposalGenerations,
+                maxMagicBrushUsage: plan.maxMagicBrushUsage,
+                maxImageGenerationUsage: plan.maxImageGenerationUsage,
             },
         };
         setEditingPlans((prev) => ({ ...prev, [plan._id]: value }));
@@ -2567,7 +2572,7 @@ const SuperAdmin = () => {
 
         return (
             <div
-                className={`border rounded-2xl p-6 w-full h-[650px] shadow-md relative transition-transform hover:scale-105 flex flex-col ${plans.mostPopularPlan === planName
+                className={`border rounded-2xl p-6 w-full h-[900px] sm:h-[650px] lg:h-[900px] shadow-md relative transition-transform hover:scale-105 flex flex-col ${plans.mostPopularPlan === planName
                     ? "border-blue-500"
                     : "border-gray-300"
                     }`}
@@ -2630,6 +2635,24 @@ const SuperAdmin = () => {
                         </div>
                         <h2 className="text-lg font-semibold mb-2">{plan.name}</h2>
                         <ul className="space-y-2 mb-6">
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                AI-Driven RFP Discovery
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                AI-Driven Grant Discovery
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                Proposals Tracking Dashboard
+                            </li>
                             <li className="flex items-center text-gray-700">
                                 <span className="text-green-500 p-1">
                                     <FaRegCheckCircle className="w-4 h-4" />
@@ -2713,31 +2736,57 @@ const SuperAdmin = () => {
                                 <span className="text-green-500 p-1">
                                     <FaRegCheckCircle className="w-4 h-4" />
                                 </span>
-                                AI-Driven RFP Discovery
+                                Rich Proposal Editor
                             </li>
                             <li className="flex items-center text-gray-700">
                                 <span className="text-green-500 p-1">
                                     <FaRegCheckCircle className="w-4 h-4" />
                                 </span>
-                                AI-Driven Grant Discovery
+                                {editingPlans[plan._id] ? (
+                                    <span className="flex items-center gap-2">
+                                        AI Magic Brush -
+                                        <input
+                                            type="number"
+                                            value={editingPlans[plan._id].editValue.maxMagicBrushUsage}
+                                            onChange={(e) => {
+                                                const validated = validateNumberInput(e.target.value, true);
+                                                setEditingPlans((prev) => ({
+                                                    ...prev,
+                                                    [plan._id]: {
+                                                        ...prev[plan._id],
+                                                        editValue: {
+                                                            ...prev[plan._id].editValue,
+                                                            maxMagicBrushUsage: validated,
+                                                        },
+                                                    },
+                                                }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            className="w-20 border rounded-lg px-2 py-1 text-center"
+                                        />
+                                        times per month
+                                    </span>
+                                ) : (
+                                    <span>
+                                        AI Magic Brush - {editingPlans[plan._id]?.editValue?.maxMagicBrushUsage ?? plan.maxMagicBrushUsage ?? 0} times per month
+                                    </span>
+                                )}
                             </li>
                             <li className="flex items-center text-gray-700">
                                 <span className="text-green-500 p-1">
                                     <FaRegCheckCircle className="w-4 h-4" />
                                 </span>
-                                AI-Proposal Recommendation
+                                Team Collaboration - Upto 2 users can collaborate at a time
                             </li>
                             <li className="flex items-center text-gray-700">
                                 <span className="text-green-500 p-1">
                                     <FaRegCheckCircle className="w-4 h-4" />
                                 </span>
-                                Basic Compliance Check
-                            </li>
-                            <li className="flex items-center text-gray-700">
-                                <span className="text-green-500 p-1">
-                                    <FaRegCheckCircle className="w-4 h-4" />
-                                </span>
-                                Proposal Tracking Dashboard
+                                Basic Compliance Check - Upto 2 times per RFP
                             </li>
                             <li className="flex items-center text-gray-700">
                                 <span className="text-green-500 p-1">
@@ -2745,7 +2794,6 @@ const SuperAdmin = () => {
                                 </span>
                                 {editingPlans[plan._id] ? (
                                     <>
-                                        Up to
                                         <input
                                             type="number"
                                             value={editingPlans[plan._id].editValue.maxEditors}
@@ -2813,24 +2861,6 @@ const SuperAdmin = () => {
                                 <span className="text-green-500 p-1">
                                     <FaRegCheckCircle className="w-4 h-4" />
                                 </span>
-                                Rich Text Editor
-                            </li>
-                            <li className="flex items-center text-gray-700">
-                                <span className="text-green-500 p-1">
-                                    <FaRegCheckCircle className="w-4 h-4" />
-                                </span>
-                                Team Collaboration
-                            </li>
-                            <li className="flex items-center text-gray-700">
-                                <span className="text-green-500 p-1">
-                                    <FaRegCheckCircle className="w-4 h-4" />
-                                </span>
-                                AI Magic Brush
-                            </li>
-                            <li className="flex items-center text-gray-700">
-                                <span className="text-green-500 p-1">
-                                    <FaRegCheckCircle className="w-4 h-4" />
-                                </span>
                                 Support
                             </li>
                         </ul>
@@ -2892,6 +2922,118 @@ const SuperAdmin = () => {
                                     <FaRegCheckCircle className="w-4 h-4" />
                                 </span>
                                 Includes All Basic Features
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                {editingPlans[plan._id] ? (
+                                    <span className="flex items-center gap-2">
+                                        AI Magic Brush -
+                                        <input
+                                            type="number"
+                                            value={editingPlans[plan._id].editValue.maxMagicBrushUsage}
+                                            onChange={(e) => {
+                                                const validated = validateNumberInput(e.target.value, true);
+                                                setEditingPlans((prev) => ({
+                                                    ...prev,
+                                                    [plan._id]: {
+                                                        ...prev[plan._id],
+                                                        editValue: {
+                                                            ...prev[plan._id].editValue,
+                                                            maxMagicBrushUsage: validated,
+                                                        },
+                                                    },
+                                                }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            className="w-20 border rounded-lg px-2 py-1 text-center"
+                                        />
+                                        times per month
+                                    </span>
+                                ) : (
+                                    <span>
+                                        AI Magic Brush - {editingPlans[plan._id]?.editValue?.maxMagicBrushUsage ?? plan.maxMagicBrushUsage ?? 0} times per month
+                                    </span>
+                                )}
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                {editingPlans[plan._id] ? (
+                                    <span className="flex items-center gap-2">
+                                        AI Image Generation for Proposals - Upto
+                                        <input
+                                            type="number"
+                                            value={editingPlans[plan._id].editValue.maxImageGenerationUsage}
+                                            onChange={(e) => {
+                                                const validated = validateNumberInput(e.target.value, true);
+                                                setEditingPlans((prev) => ({
+                                                    ...prev,
+                                                    [plan._id]: {
+                                                        ...prev[plan._id],
+                                                        editValue: {
+                                                            ...prev[plan._id].editValue,
+                                                            maxImageGenerationUsage: validated,
+                                                        },
+                                                    },
+                                                }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            className="w-20 border rounded-lg px-2 py-1 text-center"
+                                        />
+                                        times per month
+                                    </span>
+                                ) : (
+                                    <span>
+                                        AI Image Generation for Proposals - Upto {editingPlans[plan._id]?.editValue?.maxImageGenerationUsage ?? plan.maxImageGenerationUsage ?? 0} times per month
+                                    </span>
+                                )}
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                AI Chat Assist
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                Team Collaboration - Upto 5 users can collaborate at a time
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                Advanced Compliance Check - Upto 3 times per RFP
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                AI Scoring System
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                AI Competitor Industry Insights
+                            </li>
+                            <li className="flex items-center text-gray-700">
+                                <span className="text-green-500 p-1">
+                                    <FaRegCheckCircle className="w-4 h-4" />
+                                </span>
+                                RFP Matchmaking
                             </li>
                             <li className="flex items-center text-gray-700">
                                 <span className="text-green-500 p-1">
@@ -2972,7 +3114,6 @@ const SuperAdmin = () => {
                                 </span>
                                 {editingPlans[plan._id] ? (
                                     <>
-                                        Up to
                                         <input
                                             type="number"
                                             value={editingPlans[plan._id].editValue.maxEditors}
@@ -3017,47 +3158,10 @@ const SuperAdmin = () => {
                                 )}
 
                             </li>
-                            <li className="flex items-center text-gray-700">
-                                <span className="text-green-500 p-1">
-                                    <FaRegCheckCircle className="w-4 h-4" />
-                                </span>
-                                Advance Compliance Check
-                            </li>
-                            <li className="flex items-center text-gray-700">
-                                <span className="text-green-500 p-1">
-                                    <FaRegCheckCircle className="w-4 h-4" />
-                                </span>
-                                AI Image Generation for Proposals
-                            </li>
-                            <li className="flex items-center text-gray-700">
-                                <span className="text-green-500 p-1">
-                                    <FaRegCheckCircle className="w-4 h-4" />
-                                </span>
-                                AI Chat Assist
-                            </li>
-                            <li className="flex items-center text-gray-700">
-                                <span className="text-green-500 p-1">
-                                    <FaRegCheckCircle className="w-4 h-4" />
-                                </span>
-                                AI Scoring System
-                            </li>
-                            <li className="flex items-center text-gray-700">
-                                <span className="text-green-500 p-1">
-                                    <FaRegCheckCircle className="w-4 h-4" />
-                                </span>
-                                AI Competitor Industry Insights
-                            </li>
-                            <li className="flex items-center text-gray-700">
-                                <span className="text-green-500 p-1">
-                                    <FaRegCheckCircle className="w-4 h-4" />
-                                </span>
-                                RFP Matchmaking
-                            </li>
                         </ul>
                     </>
                 ) : planName === "Enterprise" ? (
                     <>
-
                         {/*IsContact Toggle Button */}
                         <div className="flex justify-end">
                             <div className="flex items-center gap-2">
@@ -4076,7 +4180,11 @@ const SuperAdmin = () => {
                         }`}
                     title="View Plan Management"
                 >
-                    Plan Management
+                    {/* /Plan Management - use icon till small screen and text on large screen */}
+                    <div className="flex items-center gap-2">
+                        <MdOutlinePriceChange className="w-5 h-5" />
+                        <span className="hidden sm:block">Plan Management</span>
+                    </div>
                 </button>
                 <button
                     onClick={() => { setPlanManagementInnerTab('subscription') }}
@@ -4086,7 +4194,11 @@ const SuperAdmin = () => {
                         }`}
                     title="View Subscription Management"
                 >
-                    Subscription Management
+                    {/* /Subscription Management - use icon till small screen and text on large screen */}
+                    <div className="flex items-center gap-2">
+                        <MdOutlineSubscriptions className="w-5 h-5" />
+                        <span className="hidden sm:block">Subscription Management</span>
+                    </div>
                 </button>
                 <button
                     onClick={() => { setPlanManagementInnerTab('addons') }}
@@ -4096,7 +4208,11 @@ const SuperAdmin = () => {
                         }`}
                     title="View Add-On Management"
                 >
-                    Add-On Management
+                    {/* /Add-On Management - use icon till small screen and text on large screen */}
+                    <div className="flex items-center gap-2">
+                        <MdOutlineAddShoppingCart className="w-5 h-5" />
+                        <span className="hidden sm:block">Add-On Management</span>
+                    </div>
                 </button>
             </nav>
 

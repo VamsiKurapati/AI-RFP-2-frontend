@@ -50,8 +50,8 @@ const AdvancedComplianceCheck = () => {
 
                 {/* RFP Title */}
                 <div className="w-full flex items-center mb-6">
-                    <button 
-                        className="bg-white rounded-lg p-2 mr-4 text-[#2563EB] hover:bg-gray-100 transition-colors" 
+                    <button
+                        className="bg-white rounded-lg p-2 mr-4 text-[#2563EB] hover:bg-gray-100 transition-colors"
                         onClick={() => navigate(-1)}
                         title="Go back to previous page"
                     >
@@ -228,7 +228,7 @@ const AdvancedComplianceCheck = () => {
 
                 {/* Navigation Buttons */}
                 <div className="flex flex-col sm:flex-row items-center justify-between mt-8 gap-4">
-                    <button 
+                    <button
                         className="border border-[#4B5563] text-[#4B5563] px-6 py-2 rounded transition-all duration-200 hover:bg-gray-100 text-[16px] flex items-center gap-2"
                         onClick={() => navigate(-1)}
                         title="Go back to previous page"
@@ -236,7 +236,7 @@ const AdvancedComplianceCheck = () => {
                         <IoIosArrowBack className="text-[20px] text-[#4B5563] shrink-0" />
                         Back
                     </button>
-                    <button 
+                    <button
                         className="bg-[#2563EB] text-white px-8 py-2 rounded transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] hover:bg-[#1D4ED8] text-[16px]"
                         onClick={() => navigate('/dashboard')}
                         title="Continue to dashboard"

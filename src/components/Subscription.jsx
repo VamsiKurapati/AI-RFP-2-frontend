@@ -68,14 +68,6 @@ export default function Subscription({ plan }) {
             <ul className="space-y-1 mb-4 text-sm">
               <li className="flex items-center text-gray-700">
                 <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
-                <span>Up to {plan.maxRFPProposalGenerations} AI - RFP Proposal Generations</span>
-              </li>
-              <li className="flex items-center text-gray-700">
-                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
-                <span>Up to {plan.maxGrantProposalGenerations} AI - Grant Proposal Generations</span>
-              </li>
-              <li className="flex items-center text-gray-700">
-                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
                 AI-Driven RFP Discovery
               </li>
               <li className="flex items-center text-gray-700">
@@ -84,31 +76,36 @@ export default function Subscription({ plan }) {
               </li>
               <li className="flex items-center text-gray-700">
                 <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
-                AI-Proposal Recommendation
-              </li>
-              <li className="flex items-center text-gray-700">
-                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
-                Basic Compliance Check
-              </li>
-              <li className="flex items-center text-gray-700">
-                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
                 Proposal Tracking Dashboard
               </li>
               <li className="flex items-center text-gray-700">
                 <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                <span>Up to {plan.maxRFPProposalGenerations} AI - RFP Proposal Generations</span>
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                <span>Up to {plan.maxGrantProposalGenerations} AI - Grant Proposal Generations</span>
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                Rich Proposal Editor
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                AI Magic Brush (In Editor) - Highlight text and click on the brush icon to generate 3 improved versions of the text<br />
+                Usage: ${plan.maxMagicBrushUsage} times per month
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                Team Collaboration - Upto 2 users can collaborate at a time
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                Basic Compliance Check - Upto 2 times per RFP
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
                 {`${plan.maxEditors} Editors, ${plan.maxViewers} Viewers, Unlimited Members`}
-              </li>
-              <li className="flex items-center text-gray-700">
-                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
-                Rich Text Editor
-              </li>
-              <li className="flex items-center text-gray-700">
-                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
-                Team Collaboration
-              </li>
-              <li className="flex items-center text-gray-700">
-                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
-                AI Magic Brush
               </li>
               <li className="flex items-center text-gray-700">
                 <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
@@ -171,19 +168,23 @@ export default function Subscription({ plan }) {
               </li>
               <li className="flex items-center text-gray-700">
                 <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
-                {`${plan.maxEditors} Editors, ${plan.maxViewers} Viewers, Unlimited Members`}
+                AI Magic Brush (In Editor) - ${plan.maxMagicBrushUsage} times per month
               </li>
               <li className="flex items-center text-gray-700">
                 <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
-                Advance Compliance Check
-              </li>
-              <li className="flex items-center text-gray-700">
-                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
-                AI Image Generation for Proposals
+                AI Image Generation for Proposals - Upto ${plan.maxImageGenerationUsage} times per month
               </li>
               <li className="flex items-center text-gray-700">
                 <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
                 AI Chat Assist
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                Team Collaboration - Upto 5 users can collaborate at a time
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                Advanced Compliance Check - Upto 3 times per RFP
               </li>
               <li className="flex items-center text-gray-700">
                 <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
@@ -196,6 +197,10 @@ export default function Subscription({ plan }) {
               <li className="flex items-center text-gray-700">
                 <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
                 RFP Matchmaking
+              </li>
+              <li className="flex items-center text-gray-700">
+                <span className="text-green-500 p-1"><FaRegCheckCircle className="w-3.5 h-3.5" /></span>
+                {`${plan.maxEditors} Editors, ${plan.maxViewers} Viewers, Unlimited Members`}
               </li>
             </ul>
             <button
