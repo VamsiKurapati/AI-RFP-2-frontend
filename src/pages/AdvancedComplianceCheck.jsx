@@ -28,7 +28,14 @@ const AdvancedComplianceCheck = () => {
                 empty_sections: incoming?.compliance_dataBasicCompliance?.empty_sections || [],
                 format_issues: incoming?.compliance_dataBasicCompliance?.format_issues || {},
             });
-            setAdvancedComplianceCheck(incoming?.dataAdvancedCompliance || {});
+            const advancedComplianceCheck = incoming?.dataAdvancedCompliance || {};
+            // const advancedComplianceCheckData = {
+            //     ...advancedComplianceCheck,
+            //     "Overall Compliance Score": 80,
+            //     "Overall Compliance Rating": "Good",
+            // };
+            // setAdvancedComplianceCheck(advancedComplianceCheckData);
+            setAdvancedComplianceCheck(advancedComplianceCheck);
             setRfpTitle(incoming.rfpTitle ? incoming.rfpTitle : "");
         } else {
             setBasicComplianceCheck({
@@ -146,7 +153,7 @@ const AdvancedComplianceCheck = () => {
                         <div className="space-y-4">
                             {advancedComplianceCheck && Object.keys(advancedComplianceCheck).length > 0 ? (
                                 Object.entries(advancedComplianceCheck)
-                                    .filter(([key]) => key !== "Suggest Pricing" && key !== "Winning Probability")
+                                    .filter(([key]) => key !== "Suggest Pricing" && key !== "Winning Probability" && key !== "Overall Compliance Score" && key !== "Overall Compliance Rating")
                                     .map(([key, value], idx) => (
                                         <div key={idx} className="border-b border-[#E5E7EB] pb-4 last:border-b-0">
                                             <div className="flex items-start gap-3">
@@ -171,7 +178,7 @@ const AdvancedComplianceCheck = () => {
                             {advancedComplianceCheck &&
                                 Object.keys(advancedComplianceCheck).length > 0 &&
                                 Object.entries(advancedComplianceCheck)
-                                    .filter(([key]) => key !== "Suggest Pricing" && key !== "Winning Probability")
+                                    .filter(([key]) => key !== "Suggest Pricing" && key !== "Winning Probability" && key !== "Overall Compliance Score" && key !== "Overall Compliance Rating")
                                     .length === 0 && (
                                     <div className="text-center py-8">
                                         <p className="text-[#6B7280] text-[16px]">No additional compliance data available</p>
@@ -193,7 +200,7 @@ const AdvancedComplianceCheck = () => {
                             <div className="bg-[#F0F9FF] border-2 border-[#BAE6FD] rounded-lg p-6">
                                 <h2 className="text-[16px] font-semibold text-[#0369A1] mb-4">Suggested Pricing</h2>
                                 <div className="flex items-center gap-3">
-                                    <div className="w-3 h-3 bg-[#0284C7] rounded-full"></div>
+                                    <div className="w-3 h-3 bg-[#0284C7] rounded-full shrink-0"></div>
                                     <p className="text-[#0F172A] text-[16px] font-medium">
                                         {advancedComplianceCheck["Suggest Pricing"]}
                                     </p>
@@ -206,7 +213,7 @@ const AdvancedComplianceCheck = () => {
                             <div className="bg-[#F0FDF4] border-2 border-[#BBF7D0] rounded-lg p-6">
                                 <h2 className="text-[16px] font-semibold text-[#166534] mb-4">Winning Probability</h2>
                                 <div className="flex items-center gap-3">
-                                    <div className="w-3 h-3 bg-[#16A34A] rounded-full"></div>
+                                    <div className="w-3 h-3 bg-[#16A34A] rounded-full shrink-0"></div>
                                     <p className="text-[#0F172A] text-[16px] font-medium">
                                         {advancedComplianceCheck["Winning Probability"]}
                                     </p>
@@ -224,6 +231,106 @@ const AdvancedComplianceCheck = () => {
                                 </div>
                             </div>
                         )}
+                </div>
+
+                {/* Overall Compliance Score and Rating */}
+                <div className="flex flex-col gap-4">
+                    {/* Overall Compliance Score Speedometer - Only show if data exists */}
+                    {advancedComplianceCheck && advancedComplianceCheck["Overall Compliance Score"] !== undefined && advancedComplianceCheck["Overall Compliance Rating"] && (
+                        <div className="bg-gradient-to-br from-white to-gray-50 border-2 border-[#E5E7EB] rounded-lg p-8 mb-6 shadow-sm">
+                            <h2 className="text-[18px] font-semibold text-[#111827] mb-6 text-center">Overall Compliance Score</h2>
+                            <div className="flex flex-col items-center justify-center">
+                                {/* Speedometer Container */}
+                                <div className="relative w-64 h-32 mb-4">
+                                    {/* Background arc */}
+                                    <svg className="w-full h-full" viewBox="0 0 200 100" style={{ transform: 'scale(1.1)' }}>
+                                        {/* Background gradient arc */}
+                                        <defs>
+                                            <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                <stop offset="0%" style={{ stopColor: '#EF4444', stopOpacity: 1 }} />
+                                                <stop offset="50%" style={{ stopColor: '#FBBF24', stopOpacity: 1 }} />
+                                                <stop offset="100%" style={{ stopColor: '#10B981', stopOpacity: 1 }} />
+                                            </linearGradient>
+                                        </defs>
+
+                                        {/* Background arc path */}
+                                        <path
+                                            d="M 20 90 A 80 80 0 0 1 180 90"
+                                            fill="none"
+                                            stroke="#E5E7EB"
+                                            strokeWidth="16"
+                                            strokeLinecap="round"
+                                        />
+
+                                        {/* Colored arc based on score */}
+                                        <path
+                                            d="M 20 90 A 80 80 0 0 1 180 90"
+                                            fill="none"
+                                            stroke="url(#gaugeGradient)"
+                                            strokeWidth="16"
+                                            strokeLinecap="round"
+                                            strokeDasharray={`${(advancedComplianceCheck["Overall Compliance Score"] / 100) * 251.2} 251.2`}
+                                            style={{ transition: 'stroke-dasharray 1s ease-in-out' }}
+                                        />
+
+                                        {/* Needle */}
+                                        <g style={{
+                                            transform: `rotate(${-90 + (advancedComplianceCheck["Overall Compliance Score"] / 100) * 180}deg)`,
+                                            transformOrigin: '100px 90px',
+                                            transition: 'transform 1s ease-in-out'
+                                        }}>
+                                            <line
+                                                x1="100"
+                                                y1="90"
+                                                x2="100"
+                                                y2="25"
+                                                stroke="#1F2937"
+                                                strokeWidth="3"
+                                                strokeLinecap="round"
+                                            />
+                                            <circle cx="100" cy="90" r="6" fill="#1F2937" />
+                                        </g>
+                                    </svg>
+
+                                    {/* Score labels */}
+                                    <div className="absolute -bottom-5 left-2 text-[12px] text-[#6B7280] font-medium">0</div>
+                                    <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-[12px] text-[#6B7280] font-medium">50</div>
+                                    <div className="absolute -bottom-5 right-1.5 text-[12px] text-[#6B7280] font-medium">100</div>
+                                </div>
+
+                                {/* Score Display */}
+                                <div className="text-center mt-2">
+                                    <div className="text-[48px] font-bold text-[#111827] leading-none">
+                                        {advancedComplianceCheck["Overall Compliance Score"]}
+                                    </div>
+                                    <div className={`text-[20px] font-semibold mt-2 ${advancedComplianceCheck["Overall Compliance Rating"] === "Good"
+                                        ? "text-[#10B981]"
+                                        : advancedComplianceCheck["Overall Compliance Rating"] === "Fair"
+                                            ? "text-[#FBBF24]"
+                                            : "text-[#EF4444]"
+                                        }`}>
+                                        {advancedComplianceCheck["Overall Compliance Rating"]}
+                                    </div>
+                                </div>
+
+                                {/* Rating Legend */}
+                                <div className="flex items-center justify-center gap-6 mt-6">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-[#EF4444] shrink-0"></div>
+                                        <span className="text-[14px] text-[#6B7280]">Poor</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-[#FBBF24] shrink-0"></div>
+                                        <span className="text-[14px] text-[#6B7280]">Fair</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-[#10B981] shrink-0"></div>
+                                        <span className="text-[14px] text-[#6B7280]">Good</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Navigation Buttons */}

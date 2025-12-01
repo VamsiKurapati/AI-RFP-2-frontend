@@ -980,6 +980,7 @@ const OnboardingGuide = () => {
                     spotlight: {
                         border: '3px solid #2563EB',
                         borderRadius: 8,
+                        boxShadow: '0 0 20px rgba(37, 99, 235, 0.6), inset 0 0 10px rgba(37, 99, 235, 0.1)',
                     },
                     tooltip: {
                         borderRadius: 8,
