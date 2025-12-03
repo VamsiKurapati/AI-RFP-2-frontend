@@ -92,8 +92,14 @@ const Editor = () => {
                 }
             });
 
+            // Check for errors in response data first
+            if (response.data?.error) {
+                throw new Error(response.data.error);
+            }
+
+            // Check if response data exists
             if (!response.data) {
-                throw new Error(response.data?.error || "Failed to load document");
+                throw new Error("Failed to load document: No data received from server");
             }
 
             setConfig(response.data);
