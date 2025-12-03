@@ -32,7 +32,7 @@ const formatDate = (date) => {
     return dateObj.toLocaleDateString();
 };
 
-const ProposalCard = ({ proposal_info, onBookmark, onShare, onGenerate, onComplianceCheck, userRole, buttonText = "Generate", isCurrentEditor = true, isLoading = false, isFetching = false }) => (
+const ProposalCard = ({ proposal_info, onBookmark, onShare, onGenerate, onComplianceCheck, userRole, buttonText = "Generate", isCurrentEditor = true, isCurrentEditorOrViewer = true, isLoading = false, isFetching = false }) => (
     <div className="bg-white rounded-xl border border-[#E5E7EB] p-5 flex flex-col justify-between relative">
         <div>
             <div className="flex items-start justify-between">
@@ -43,7 +43,7 @@ const ProposalCard = ({ proposal_info, onBookmark, onShare, onGenerate, onCompli
                         onClick={proposal_info.bookmarked && userRole === "Viewer" ? undefined : onBookmark}
                         disabled={isLoading || (proposal_info.bookmarked && userRole === "Viewer")}
                         aria-label={proposal_info.bookmarked ? (userRole === "Viewer" ? "Viewer cannot unsave" : "Unsave proposal") : "Save proposal"}
-                        className={`${buttonText === "Download" ? "hidden opacity-0 pointer-events-none" : proposal_info.bookmarked && userRole === "Viewer" ? "cursor-not-allowed opacity-50" : isLoading ? "cursor-wait opacity-75" : "cursor-pointer"} text-[#111827]`}
+                        className={`${buttonText === "Editor" ? "hidden opacity-0 pointer-events-none" : proposal_info.bookmarked && userRole === "Viewer" ? "cursor-not-allowed opacity-50" : isLoading ? "cursor-wait opacity-75" : "cursor-pointer"} text-[#111827]`}
                     >
                         {isLoading ? (
                             <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#111827]" aria-hidden="true"></div>
@@ -57,7 +57,7 @@ const ProposalCard = ({ proposal_info, onBookmark, onShare, onGenerate, onCompli
                         title="Share"
                         onClick={onShare}
                         aria-label="Share proposal"
-                        className={`${buttonText === "Download" ? "hidden opacity-0 pointer-events-none" : "text-[#111827]"}`}
+                        className={`${buttonText === "Editor" ? "hidden opacity-0 pointer-events-none" : "text-[#111827]"}`}
                     >
                         <MdOutlineShare className="w-5 h-5 shrink-0" />
                     </button>
@@ -70,7 +70,7 @@ const ProposalCard = ({ proposal_info, onBookmark, onShare, onGenerate, onCompli
             </div>
         </div>
         <div className="flex justify-between items-center mt-2">
-            {buttonText !== "Download" && (
+            {buttonText !== "Editor" && (
                 <div className="flex items-center">
                     <span className="text-[#2563EB] text-[14px] font-semibold">{proposal_info.budget === "Not found" || proposal_info.budget === "Not Provided" || proposal_info.budget === "Not Disclosed" ? "Budget: Not Disclosed" : proposal_info.budget}</span>
                 </div>
@@ -78,20 +78,18 @@ const ProposalCard = ({ proposal_info, onBookmark, onShare, onGenerate, onCompli
             <div>
                 <button
                     onClick={onGenerate}
-                    disabled={userRole === "Viewer" || (buttonText === "Download" && !isCurrentEditor) || isFetching[proposal_info._id]}
+                    disabled={(buttonText === "Editor" && !isCurrentEditorOrViewer) || isFetching[proposal_info._id]}
                     aria-label={`${buttonText.toLowerCase()} proposal`}
-                    className={`self-end px-5 py-1.5 rounded-lg text-[16px] font-medium ${userRole === "Viewer" || (buttonText === "Download" && !isCurrentEditor)
+                    className={`self-end px-5 py-1.5 rounded-lg text-[16px] font-medium ${(buttonText === "Editor" && !isCurrentEditorOrViewer)
                         ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                         : 'bg-[#2563EB] text-white hover:bg-[#1d4ed8]'
                         }`}
                     title={
-                        userRole === "Viewer"
-                            ? "Viewer cannot generate/edit proposals"
-                            : buttonText === "Download" && !isCurrentEditor
-                                ? "Only the current editor can download this proposal"
-                                : isFetching[proposal_info._id]
-                                    ? "Fetching proposal..."
-                                    : `Click to ${buttonText.toLowerCase()}`
+                        buttonText === "Editor" && !isCurrentEditorOrViewer
+                            ? "Only assigned editors and viewers can edit this proposal"
+                            : isFetching[proposal_info._id]
+                                ? "Fetching proposal..."
+                                : `Click to ${buttonText.toLowerCase()}`
                     }
                 >
                     {isFetching[proposal_info._id] ? (
@@ -102,38 +100,40 @@ const ProposalCard = ({ proposal_info, onBookmark, onShare, onGenerate, onCompli
                         buttonText
                     )}
                 </button>
-                {buttonText === "Download" && !isCurrentEditor && (
+                {buttonText === "Editor" && !isCurrentEditorOrViewer && (
                     <div className="text-xs text-gray-500 mt-1 text-center">
-                        Current editor: {proposal_info.currentEditor?.fullName || proposal_info.currentEditor?.email || 'Unknown'}
+                        {proposal_info.collaborators?.editors && proposal_info.collaborators.editors.length > 0
+                            ? `Editors: ${proposal_info.collaborators.editors.map(e => e.fullName || e.email || 'Unknown').join(', ')}`
+                            : 'No editors assigned'}
                     </div>
                 )}
             </div>
-            {/* Compliance Check only for buttonText = "Download" */}
-            {buttonText === "Download" && (
+            {/* Compliance Check only for buttonText = "Editor" */}
+            {buttonText === "Editor" && (
                 <div>
                     <button
                         onClick={onComplianceCheck}
-                        disabled={userRole === "Viewer" || (!isCurrentEditor) || isFetching[proposal_info._id]}
+                        disabled={!isCurrentEditor || isFetching[proposal_info._id]}
                         aria-label={`Compliance Check`}
-                        className={`self-end px-5 py-1.5 rounded-lg text-[16px] font-medium ${userRole === "Viewer" || (!isCurrentEditor)
+                        className={`self-end px-5 py-1.5 rounded-lg text-[16px] font-medium ${!isCurrentEditor
                             ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                             : 'bg-[#2563EB] text-white hover:bg-[#1d4ed8]'
                             }`}
                         title={
-                            userRole === "Viewer"
-                                ? "Viewer cannot check compliance"
-                                : !isCurrentEditor
-                                    ? "Only the current editor can check compliance"
-                                    : isFetching[proposal_info._id]
-                                        ? "Fetching proposal..."
-                                        : `Click to Compliance Check`
+                            !isCurrentEditor
+                                ? "Only assigned editors can check compliance for this proposal"
+                                : isFetching[proposal_info._id]
+                                    ? "Fetching proposal..."
+                                    : `Click to Compliance Check`
                         }
                     >
                         Compliance
                     </button>
                     {!isCurrentEditor && (
                         <div className="text-xs text-gray-500 mt-1 text-center">
-                            Current editor: {proposal_info.currentEditor?.fullName || proposal_info.currentEditor?.email || 'Unknown'}
+                            {proposal_info.collaborators?.editors && proposal_info.collaborators.editors.length > 0
+                                ? `Editors: ${proposal_info.collaborators.editors.map(e => e.fullName || e.email || 'Unknown').join(', ')}`
+                                : 'No editors assigned'}
                         </div>
                     )}
                 </div>
@@ -143,7 +143,7 @@ const ProposalCard = ({ proposal_info, onBookmark, onShare, onGenerate, onCompli
     </div>
 );
 
-const GrantCard = ({ grant_info, onBookmark, onShare, onGenerate, userRole, buttonText = "Generate", isCurrentEditor = true, isLoading = false, isFetching = false }) => (
+const GrantCard = ({ grant_info, onBookmark, onShare, onGenerate, userRole, buttonText = "Generate", isCurrentEditor = true, isCurrentEditorOrViewer = true, isLoading = false, isFetching = false }) => (
     <div className="bg-white rounded-xl border border-[#E5E7EB] p-5 flex flex-col justify-between relative">
         <div>
             <div className="flex items-start justify-between">
@@ -154,7 +154,7 @@ const GrantCard = ({ grant_info, onBookmark, onShare, onGenerate, userRole, butt
                         onClick={grant_info.bookmarked && userRole === "Viewer" ? undefined : onBookmark}
                         disabled={isLoading || (grant_info.bookmarked && userRole === "Viewer")}
                         aria-label={grant_info.bookmarked ? (userRole === "Viewer" ? "Viewer cannot unsave" : "Unsave grant") : "Save grant"}
-                        className={`${buttonText === "Download" ? "hidden opacity-0 pointer-events-none" : grant_info.bookmarked && userRole === "Viewer" ? "cursor-not-allowed opacity-50" : isLoading ? "cursor-wait opacity-75" : "cursor-pointer"} text-[#111827]`}
+                        className={`${buttonText === "Editor" ? "hidden opacity-0 pointer-events-none" : grant_info.bookmarked && userRole === "Viewer" ? "cursor-not-allowed opacity-50" : isLoading ? "cursor-wait opacity-75" : "cursor-pointer"} text-[#111827]`}
                     >
                         {isLoading ? (
                             <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#111827]" aria-hidden="true"></div>
@@ -168,7 +168,7 @@ const GrantCard = ({ grant_info, onBookmark, onShare, onGenerate, userRole, butt
                         title="Share"
                         onClick={onShare}
                         aria-label="Share grant"
-                        className={`${buttonText === "Download" ? "hidden opacity-0 pointer-events-none" : "text-[#111827]"}`}
+                        className={`${buttonText === "Editor" ? "hidden opacity-0 pointer-events-none" : "text-[#111827]"}`}
                     >
                         <MdOutlineShare className="w-5 h-5 shrink-0" />
                     </button>
@@ -217,20 +217,18 @@ const GrantCard = ({ grant_info, onBookmark, onShare, onGenerate, userRole, butt
             <div>
                 <button
                     onClick={onGenerate}
-                    disabled={userRole === "Viewer" || (buttonText === "Download" && !isCurrentEditor) || isFetching[grant_info._id]}
+                    disabled={(buttonText === "Editor" && !isCurrentEditorOrViewer) || isFetching[grant_info._id]}
                     aria-label={`${buttonText.toLowerCase()} grant proposal`}
-                    className={`self-end px-5 py-1.5 rounded-lg text-[16px] font-medium ${userRole === "Viewer" || (buttonText === "Download" && !isCurrentEditor)
+                    className={`self-end px-5 py-1.5 rounded-lg text-[16px] font-medium ${(buttonText === "Editor" && !isCurrentEditorOrViewer)
                         ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                         : 'bg-[#2563EB] text-white hover:bg-[#1d4ed8]'
                         }`}
                     title={
-                        userRole === "Viewer"
-                            ? "Viewer cannot generate/edit grant proposals"
-                            : buttonText === "Download" && !isCurrentEditor
-                                ? "Only the current editor can download this grant proposal"
-                                : isFetching[grant_info._id]
-                                    ? "Fetching grant proposal..."
-                                    : `Click to ${buttonText.toLowerCase()}`
+                        buttonText === "Editor" && !isCurrentEditorOrViewer
+                            ? "Only assigned editors and viewers can edit this grant proposal"
+                            : isFetching[grant_info._id]
+                                ? "Fetching grant proposal..."
+                                : `Click to ${buttonText.toLowerCase()}`
                     }
                 >
                     {isFetching[grant_info._id] ? (
@@ -241,9 +239,11 @@ const GrantCard = ({ grant_info, onBookmark, onShare, onGenerate, userRole, butt
                         buttonText
                     )}
                 </button>
-                {buttonText === "Download" && !isCurrentEditor && (
+                {buttonText === "Editor" && !isCurrentEditorOrViewer && (
                     <div className="text-xs text-gray-500 mt-1 text-center">
-                        Current editor: {grant_info.currentEditor?.fullName || grant_info.currentEditor?.email || 'Unknown'}
+                        {grant_info.collaborators?.editors && grant_info.collaborators.editors.length > 0
+                            ? `Editors: ${grant_info.collaborators.editors.map(e => e.fullName || e.email || 'Unknown').join(', ')}`
+                            : 'No editors assigned'}
                     </div>
                 )}
             </div>
@@ -684,7 +684,8 @@ const Proposals = () => {
     };
 
     const handleContinue = async (proposal) => {
-        //If there is no docx_base64 or docx_base64 is null, then call the backend to fetch the docx_base64
+        // Navigate to editor with proposal data
+        // If there is no docx_base64, fetch it first, then navigate
         if (!proposal.docx_base64 || proposal.docx_base64 === null) {
             try {
                 setIsFetchingProposal(prev => ({ ...prev, [proposal._id]: true }));
@@ -696,15 +697,9 @@ const Proposals = () => {
 
                 if (res.status === 200) {
                     if (res.data.message === "Proposal Generated successfully.") {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success',
-                            timer: 1500,
-                            text: 'Proposal Generated successfully. Downloading proposal...',
-                        });
-                        setTimeout(() => {
-                            handleWordGeneration(res.data.proposal);
-                        }, 1500);
+                        // Update proposal with fetched data and navigate to editor
+                        const updatedProposal = { ...proposal, ...res.data.proposal };
+                        navigate(`/editor/rfp/${proposal._id}`, { state: { proposal: updatedProposal } });
                     } else if (res.data.message === "Proposal Generation is still in progress. Please wait for it to complete.") {
                         Swal.fire({
                             icon: 'info',
@@ -736,8 +731,8 @@ const Proposals = () => {
                 setIsFetchingProposal(prev => ({ ...prev, [proposal._id]: false }));
             }
         } else {
-            //If there is docx_base64, then continue to word generation
-            handleWordGeneration(proposal.docx_base64);
+            // Navigate to editor with existing proposal data
+            navigate(`/editor/rfp/${proposal._id}`, { state: { proposal: proposal } });
         }
     };
 
@@ -839,7 +834,8 @@ const Proposals = () => {
     };
 
     const handleContinueGrant = async (grant) => {
-        //If there is no docx_base64 or docx_base64 is null, then call the backend to fetch the docx_base64
+        // Navigate to editor with grant data
+        // If there is no docx_base64, fetch it first, then navigate
         if (!grant.docx_base64 || grant.docx_base64 === null) {
             try {
                 setIsFetchingGrantProposal(prev => ({ ...prev, [grant._id]: true }));
@@ -850,15 +846,9 @@ const Proposals = () => {
                 });
                 if (res.status === 200) {
                     if (res.data.message === "Grant Proposal Generated successfully.") {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success',
-                            timer: 1000,
-                            text: 'Grant proposal generated successfully. Downloading proposal...',
-                        });
-                        setTimeout(() => {
-                            handleWordGeneration(res.data.proposal);
-                        }, 1000);
+                        // Update grant with fetched data and navigate to editor
+                        const updatedGrant = { ...grant, ...res.data.proposal };
+                        navigate(`/editor/grant/${grant.grantId}`, { state: { grant: updatedGrant } });
                     } else if (res.data.message === "Grant Proposal Generation is still in progress. Please wait for it to complete.") {
                         Swal.fire({
                             icon: 'info',
@@ -889,8 +879,8 @@ const Proposals = () => {
                 setIsFetchingGrantProposal(prev => ({ ...prev, [grant._id]: false }));
             }
         } else {
-            //If there is docx_base64, then continue to word generation
-            handleWordGeneration(grant.docx_base64);
+            // Navigate to editor with existing grant data
+            navigate(`/editor/grant/${grant.grantId}`, { state: { grant: grant } });
         }
     };
 
@@ -1180,6 +1170,28 @@ const Proposals = () => {
                                             </div>
                                         )}
                                         {currentDraftProposals.map((proposal, idx) => {
+                                            const isEditor = role === "company" ||
+                                                (proposal.collaborators?.editors && Array.isArray(proposal.collaborators.editors) &&
+                                                    proposal.collaborators.editors.some(editor =>
+                                                        (typeof editor === 'object' && editor.email === userEmail) ||
+                                                        (typeof editor === 'string' && editor === userEmail)
+                                                    )
+                                                );
+
+                                            const isEditorOrViewer = role === "company" ||
+                                                (proposal.collaborators?.editors && Array.isArray(proposal.collaborators.editors) &&
+                                                    proposal.collaborators.editors.some(editor =>
+                                                        (typeof editor === 'object' && editor.email === userEmail) ||
+                                                        (typeof editor === 'string' && editor === userEmail)
+                                                    )
+                                                ) ||
+                                                (proposal.collaborators?.viewers && Array.isArray(proposal.collaborators.viewers) &&
+                                                    proposal.collaborators.viewers.some(viewer =>
+                                                        (typeof viewer === 'object' && viewer.email === userEmail) ||
+                                                        (typeof viewer === 'string' && viewer === userEmail)
+                                                    )
+                                                );
+
                                             return (
                                                 <ProposalCard
                                                     key={proposal._id || proposal.rfpId || `draft-proposal-${idx}`}
@@ -1192,8 +1204,9 @@ const Proposals = () => {
                                                     onGenerate={() => handleContinue(proposal)}
                                                     onComplianceCheck={() => handleComplianceCheck(proposal)}
                                                     userRole={role}
-                                                    buttonText="Download"
-                                                    isCurrentEditor={proposal.currentEditor?.email === userEmail || role === "company"}
+                                                    buttonText="Editor"
+                                                    isCurrentEditor={isEditor}
+                                                    isCurrentEditorOrViewer={isEditorOrViewer}
                                                     isLoading={savingStates[proposal._id] || false}
                                                     isFetching={isFetchingProposal}
                                                 />
@@ -1266,6 +1279,28 @@ const Proposals = () => {
                             <div className={`grid ${getGridLayoutClass()} gap-5 mb-6`}>
                                 {currentDraftGrants.length > 0 ? (
                                     currentDraftGrants.map((grant, idx) => {
+                                        const isEditor = role === "company" ||
+                                            (grant.collaborators?.editors && Array.isArray(grant.collaborators.editors) &&
+                                                grant.collaborators.editors.some(editor =>
+                                                    (typeof editor === 'object' && editor.email === userEmail) ||
+                                                    (typeof editor === 'string' && editor === userEmail)
+                                                )
+                                            );
+
+                                        const isEditorOrViewer = role === "company" ||
+                                            (grant.collaborators?.editors && Array.isArray(grant.collaborators.editors) &&
+                                                grant.collaborators.editors.some(editor =>
+                                                    (typeof editor === 'object' && editor.email === userEmail) ||
+                                                    (typeof editor === 'string' && editor === userEmail)
+                                                )
+                                            ) ||
+                                            (grant.collaborators?.viewers && Array.isArray(grant.collaborators.viewers) &&
+                                                grant.collaborators.viewers.some(viewer =>
+                                                    (typeof viewer === 'object' && viewer.email === userEmail) ||
+                                                    (typeof viewer === 'string' && viewer === userEmail)
+                                                )
+                                            );
+
                                         return (
                                             <GrantCard
                                                 key={grant._id || grant.OPPORTUNITY_NUMBER || `draft-grant-${idx}`}
@@ -1277,8 +1312,9 @@ const Proposals = () => {
                                                 onShare={() => handleShare(grant.OPPORTUNITY_NUMBER_LINK || '#')}
                                                 onGenerate={() => handleContinueGrant(grant)}
                                                 userRole={role}
-                                                buttonText="Download"
-                                                isCurrentEditor={grant.currentEditor?.email === userEmail || role === "company"}
+                                                buttonText="Editor"
+                                                isCurrentEditor={isEditor}
+                                                isCurrentEditorOrViewer={isEditorOrViewer}
                                                 isLoading={savingStates[grant._id] || false}
                                                 isFetching={isFetchingGrantProposal}
                                             />

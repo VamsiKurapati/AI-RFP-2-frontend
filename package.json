@@ -12,6 +12,7 @@
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
     "@fontsource/inter": "^5.2.6",
+    "@onlyoffice/document-editor-react": "^2.1.1",
     "@react-google-maps/api": "^2.20.7",
     "@stripe/react-stripe-js": "^3.9.2",
     "@stripe/stripe-js": "^7.9.0",

@@ -233,6 +233,10 @@ const Dashboard = () => {
     const [selectedGrantProposals, setSelectedGrantProposals] = useState([]);
     const [showDeleteOptions, setShowDeleteOptions] = useState(false);
     const [showGrantDeleteOptions, setShowGrantDeleteOptions] = useState(false);
+    const [selectedCollaborators, setSelectedCollaborators] = useState({});
+    const [selectedGrantCollaborators, setSelectedGrantCollaborators] = useState({});
+    const [collaboratorSearch, setCollaboratorSearch] = useState({});
+    const [grantCollaboratorSearch, setGrantCollaboratorSearch] = useState({});
     const [currentProposalPage, setCurrentProposalPage] = useState(1);
     const [currentDeletedPage, setCurrentDeletedPage] = useState(1);
     const [currentGrantPage, setCurrentGrantPage] = useState(1);
@@ -429,105 +433,131 @@ const Dashboard = () => {
         }
     }, [loading, registerRef]);
 
-    const handleSetCurrentEditor = async (idx, editorId) => {
-        const editor = employees.find(emp => emp.employeeId === editorId);
+    const handleToggleCollaborator = (proposalIdx, employeeId) => {
+        setSelectedCollaborators(prev => {
+            const key = proposalIdx;
+            const current = prev[key] || [];
+            const isSelected = current.includes(employeeId);
 
-        const result = await Swal.fire({
-            title: 'Assign Editor',
-            text: `Are you sure you want to assign ${editor.name} as the current editor for this proposal?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#2563EB',
-            cancelButtonColor: '#6B7280',
-            confirmButtonText: 'Yes, assign editor!',
-            cancelButtonText: 'Cancel'
-        });
-
-        if (result.isConfirmed) {
-            try {
-                const token = localStorage.getItem('token');
-                const res = await axios.put(`${BASE_URL}/setCurrentEditor`, {
-                    proposalId: proposalsState[idx]._id,
-                    editorId: editorId
-                }, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-                if (res.status === 200) {
-                    setProposalsState(prev => prev.map((p, i) => i === idx ? { ...p, currentEditor: { _id: editor.employeeId, fullName: editor.name, email: editor.email } } : p));
-                    setShowAddPersonIdx(null);
-
-                    Swal.fire(
-                        'Editor Assigned!',
-                        `${editor.name} has been assigned as the current editor.`,
-                        'success'
-                    );
-                } else {
-                    Swal.fire(
-                        'Error!',
-                        'Failed to assign editor.',
-                        'error'
-                    );
-                }
-            } catch (error) {
-                Swal.fire(
-                    'Error!',
-                    'Failed to assign editor.',
-                    'error'
-                );
+            if (isSelected) {
+                return { ...prev, [key]: current.filter(id => id !== employeeId) };
+            } else {
+                return { ...prev, [key]: [...current, employeeId] };
             }
+        });
+    };
+
+    const handleSaveCollaborators = async (proposalIdx) => {
+        const collaboratorIds = selectedCollaborators[proposalIdx] || [];
+
+        setSavingProposal(prev => ({ ...prev, [proposalsState[proposalIdx]._id]: true }));
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.put(`${BASE_URL}/setCollaborators`, {
+                proposalId: proposalsState[proposalIdx]._id,
+                collaboratorIds: collaboratorIds
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            if (res.status === 200) {
+                const collaborators = employees.filter(emp => collaboratorIds.includes(emp.employeeId));
+                setProposalsState(prev => prev.map((p, i) =>
+                    i === proposalIdx
+                        ? { ...p, collaborators: collaborators.map(c => ({ _id: c.employeeId, fullName: c.name, email: c.email })) }
+                        : p
+                ));
+                setShowAddPersonIdx(null);
+                setSelectedCollaborators(prev => ({ ...prev, [proposalIdx]: [] }));
+
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Collaborators updated successfully!',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Failed to update collaborators.',
+                    icon: 'error'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to update collaborators.',
+                icon: 'error'
+            });
+        } finally {
+            setSavingProposal(prev => ({ ...prev, [proposalsState[proposalIdx]._id]: false }));
         }
     };
 
-    const handleSetGrantCurrentEditor = async (idx, editorId) => {
-        const editor = employees.find(emp => emp.employeeId === editorId);
+    const handleToggleGrantCollaborator = (proposalIdx, employeeId) => {
+        setSelectedGrantCollaborators(prev => {
+            const key = proposalIdx;
+            const current = prev[key] || [];
+            const isSelected = current.includes(employeeId);
 
-        const result = await Swal.fire({
-            title: 'Assign Editor',
-            text: `Are you sure you want to assign ${editor.name} as the current editor for this grant proposal?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#2563EB',
-            cancelButtonColor: '#6B7280',
-            confirmButtonText: 'Yes, assign editor!',
-            cancelButtonText: 'Cancel'
-        });
-
-        if (result.isConfirmed) {
-            try {
-                const token = localStorage.getItem('token');
-                const res = await axios.put(`${BASE_URL}/setGrantCurrentEditor`, {
-                    proposalId: grantProposals[idx]._id,
-                    editorId: editorId
-                }, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-                if (res.status === 200) {
-                    setGrantProposals(prev => prev.map((p, i) => i === idx ? { ...p, currentEditor: { _id: editor.employeeId, fullName: editor.name, email: editor.email } } : p));
-                    setShowAddPersonIdx(null);
-
-                    Swal.fire(
-                        'Editor Assigned!',
-                        `${editor.name} has been assigned as the current editor for this grant proposal.`,
-                        'success'
-                    );
-                } else {
-                    Swal.fire(
-                        'Error!',
-                        'Failed to assign editor.',
-                        'error'
-                    );
-                }
-            } catch (error) {
-                Swal.fire(
-                    'Error!',
-                    'Failed to assign editor.',
-                    'error'
-                );
+            if (isSelected) {
+                return { ...prev, [key]: current.filter(id => id !== employeeId) };
+            } else {
+                return { ...prev, [key]: [...current, employeeId] };
             }
+        });
+    };
+
+    const handleSaveGrantCollaborators = async (proposalIdx) => {
+        const collaboratorIds = selectedGrantCollaborators[proposalIdx] || [];
+
+        setSavingGrantProposal(prev => ({ ...prev, [grantProposals[proposalIdx]._id]: true }));
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.put(`${BASE_URL}/setGrantCollaborators`, {
+                grantProposalId: grantProposals[proposalIdx]._id,
+                collaboratorIds: collaboratorIds
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            if (res.status === 200) {
+                const collaborators = employees.filter(emp => collaboratorIds.includes(emp.employeeId));
+                setGrantProposals(prev => prev.map((p, i) =>
+                    i === proposalIdx
+                        ? { ...p, collaborators: collaborators.map(c => ({ _id: c.employeeId, fullName: c.name, email: c.email })) }
+                        : p
+                ));
+                setShowAddGrantPersonIdx(null);
+                setSelectedGrantCollaborators(prev => ({ ...prev, [proposalIdx]: [] }));
+
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Collaborators updated successfully!',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Failed to update collaborators.',
+                    icon: 'error'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to update collaborators.',
+                icon: 'error'
+            });
+        } finally {
+            setSavingGrantProposal(prev => ({ ...prev, [grantProposals[proposalIdx]._id]: false }));
         }
     };
 
@@ -1190,7 +1220,7 @@ const Dashboard = () => {
                                 {showDeleteOptions && <th className="px-4 py-2"></th>}
                                 <th className="px-4 py-2 text-left font-medium">Proposal Name</th>
                                 <th className="px-4 py-2 text-left font-medium">Client Name</th>
-                                <th className="px-4 py-2 text-left font-medium">Current Editor</th>
+                                <th className="px-4 py-2 text-left font-medium">Collaborators</th>
                                 <th className="px-4 py-2 text-left font-medium">Deadline</th>
                                 <th className="px-4 py-2 text-left font-medium">Status</th>
                                 <th className="px-4 py-2 text-left font-medium">Submission Date</th>
@@ -1226,110 +1256,181 @@ const Dashboard = () => {
 
                                             <td className="px-4 py-2">{p.client || "Not Provided"}</td>
 
-                                            {p.currentEditor && p.currentEditor.email === userEmail ? (
-                                                <td className="px-4 py-2 relative">
-                                                    <div className="flex items-center gap-2">
-                                                        <span>{userName.split(" ")[0]} (You)</span>
+                                            <td className="px-4 py-2 relative">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    {p.collaborators && p.collaborators.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {p.collaborators.map((collab, idx) => (
+                                                                <span key={idx} className="px-2 py-1 bg-[#DBEAFE] text-[#2563EB] rounded-full text-xs">
+                                                                    {collab.fullName || collab.email}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-500">No Collaborators</span>
+                                                    )}
+                                                    {role === "company" && (
                                                         <button
-                                                            className="text-[#2563EB]"
-                                                            title="Assign Editor"
-                                                            onClick={() => setShowAddPersonIdx(realIdx)}
+                                                            className="text-[#2563EB] hover:text-[#1d4ed8]"
+                                                            title="Manage Collaborators"
+                                                            onClick={() => {
+                                                                setShowAddPersonIdx(realIdx);
+                                                                setSelectedCollaborators(prev => ({
+                                                                    ...prev,
+                                                                    [realIdx]: p.collaborators ? p.collaborators.map(c => c._id) : []
+                                                                }));
+                                                                setCollaboratorSearch(prev => ({ ...prev, [realIdx]: '' }));
+                                                            }}
                                                         >
                                                             <MdPersonAddAlt1 className="w-4 h-4" />
                                                         </button>
-                                                    </div>
-                                                    {showAddPersonIdx === realIdx && (
-                                                        <>
-                                                            {/* Backdrop blur overlay for the table */}
-                                                            <div className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm z-10" />
+                                                    )}
+                                                </div>
+                                                {showAddPersonIdx === realIdx && (
+                                                    <>
+                                                        {/* Backdrop blur overlay for the table */}
+                                                        <div className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm z-10" />
 
-                                                            {/* Dropdown with scrollable content */}
-                                                            <div className="absolute bg-white border border-[#E5E7EB] rounded-md shadow-lg z-20 mt-4 w-40 max-h-48 overflow-hidden">
-                                                                <div className="p-3 border-b border-[#E5E7EB]">
-                                                                    <h2 className="text-[14px] font-medium text-gray-800">Assign Editor</h2>
+                                                        {/* Dropdown with scrollable content */}
+                                                        <div className="absolute bg-white border border-[#E5E7EB] rounded-lg shadow-xl z-20 mt-4 w-80 max-h-[500px] overflow-hidden flex flex-col">
+                                                            {/* Header */}
+                                                            <div className="p-4 border-b border-[#E5E7EB] bg-gradient-to-r from-[#F9FAFB] to-white">
+                                                                <div className="flex items-center justify-between mb-3">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <MdPersonAddAlt1 className="w-5 h-5 text-[#2563EB]" />
+                                                                        <h2 className="text-[16px] font-semibold text-gray-800">Manage Collaborators</h2>
+                                                                    </div>
                                                                     <button
-                                                                        className="text-gray-500 absolute top-3 right-3 hover:text-gray-700 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                        onClick={() => setShowAddPersonIdx(null)}
+                                                                        className="text-gray-400 hover:text-gray-600 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed p-1 rounded-md hover:bg-gray-100"
+                                                                        onClick={() => {
+                                                                            setShowAddPersonIdx(null);
+                                                                            setSelectedCollaborators(prev => ({ ...prev, [realIdx]: [] }));
+                                                                            setCollaboratorSearch(prev => ({ ...prev, [realIdx]: '' }));
+                                                                        }}
                                                                         disabled={savingProposal[p._id]}
-                                                                        title={savingProposal[p._id] ? "Please wait..." : "Close editor assignment dropdown"}
+                                                                        title={savingProposal[p._id] ? "Please wait..." : "Close collaborator selection"}
                                                                     >
-                                                                        <MdOutlineClose className="w-4 h-4" />
+                                                                        <MdOutlineClose className="w-5 h-5" />
                                                                     </button>
                                                                 </div>
-                                                                <div className="max-h-32 overflow-y-auto">
-                                                                    <ul className="p-1">
-                                                                        {/* Only show editors to assign as current editor */}
-                                                                        {employees.filter(emp => emp.name !== userName && emp.accessLevel === "Editor").map(emp => (
-                                                                            <li key={emp.name} className="mb-1">
-                                                                                <button
-                                                                                    className="block px-3 py-2 bg-gray-50 rounded-md border border-gray-200 hover:bg-[#2563EB] hover:text-white hover:border-[#2563EB] w-full text-left text-[14px] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                                    onClick={() => handleSetCurrentEditor(realIdx, emp.employeeId)}
-                                                                                    disabled={savingProposal[p._id]}
-                                                                                    title={savingProposal[p._id] ? "Assigning editor..." : `Assign ${emp.name} as editor`}
-                                                                                >
-                                                                                    {emp.name}
-                                                                                </button>
-                                                                            </li>
-                                                                        ))}
-                                                                    </ul>
-                                                                </div>
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </td>
-                                            ) : (
-                                                <td className="px-4 py-2 relative">
-                                                    <div className="flex items-center gap-2">
-                                                        <span>{p.currentEditor ? p.currentEditor.fullName : p.currentEditor ? p.currentEditor.email : p.currentEditor ? p.currentEditor.name : "No Editor Assigned"}</span>
-                                                        {role === "company" && (
-                                                            <button
-                                                                className="text-[#2563EB]"
-                                                                title="Assign Editor"
-                                                                onClick={() => setShowAddPersonIdx(realIdx)}
-                                                            >
-                                                                <MdPersonAddAlt1 className="w-4 h-4" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    {showAddPersonIdx === realIdx && (
-                                                        <>
-                                                            {/* Backdrop blur overlay for the table */}
-                                                            <div className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm z-10" />
 
-                                                            {/* Dropdown with scrollable content */}
-                                                            <div className="absolute bg-white border border-[#E5E7EB] rounded-md shadow-lg z-20 mt-4 w-40 max-h-48 overflow-hidden">
-                                                                <div className="p-3 border-b border-[#E5E7EB]">
-                                                                    <h2 className="text-[14px] font-medium text-gray-800">Assign Editor</h2>
-                                                                    <button
-                                                                        className="text-gray-500 absolute top-3 right-3 hover:text-gray-700 transition-colors"
-                                                                        onClick={() => setShowAddPersonIdx(null)}
-                                                                        title="Close editor assignment"
-                                                                    >
-                                                                        <MdOutlineClose className="w-4 h-4" />
-                                                                    </button>
-                                                                </div>
-                                                                <div className="max-h-32 overflow-y-auto">
-                                                                    <ul className="p-1">
-                                                                        {/* Only show editors to assign as current editor */}
-                                                                        {employees.filter(emp => emp.name !== userName && emp.accessLevel === "Editor").map(emp => (
-                                                                            <li key={emp.name} className="mb-1">
-                                                                                <button
-                                                                                    className="block px-3 py-2 bg-gray-50 rounded-md border border-gray-200 hover:bg-[#2563EB] hover:text-white hover:border-[#2563EB] w-full text-left text-[14px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                                    onClick={() => handleSetCurrentEditor(realIdx, emp.employeeId)}
-                                                                                    disabled={savingProposal[p._id]}
-                                                                                    title={savingProposal[p._id] ? "Assigning editor..." : `Assign ${emp.name} as editor`}
-                                                                                >
-                                                                                    {emp.name}
-                                                                                </button>
-                                                                            </li>
-                                                                        ))}
-                                                                    </ul>
+                                                                {/* Selected count badge */}
+                                                                {(selectedCollaborators[realIdx] || []).length > 0 && (
+                                                                    <div className="flex items-center gap-2 mt-2">
+                                                                        <span className="text-xs text-gray-600">
+                                                                            {(selectedCollaborators[realIdx] || []).length} selected
+                                                                        </span>
+                                                                        <span className="h-1 w-1 bg-gray-400 rounded-full"></span>
+                                                                        <span className="text-xs text-gray-600">
+                                                                            {employees.filter(emp => (emp.accessLevel === "Editor" || emp.accessLevel === "Viewer") &&
+                                                                                (!collaboratorSearch[realIdx] || emp.name.toLowerCase().includes((collaboratorSearch[realIdx] || '').toLowerCase()))).length} total
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Search input */}
+                                                                <div className="relative mt-3">
+                                                                    <MdOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Search employees..."
+                                                                        value={collaboratorSearch[realIdx] || ''}
+                                                                        onChange={(e) => setCollaboratorSearch(prev => ({ ...prev, [realIdx]: e.target.value }))}
+                                                                        className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
+                                                                        disabled={savingProposal[p._id]}
+                                                                    />
                                                                 </div>
                                                             </div>
-                                                        </>
-                                                    )}
-                                                </td>
-                                            )}
+
+                                                            {/* Employee list */}
+                                                            <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
+                                                                {(() => {
+                                                                    const filteredEmployees = employees
+                                                                        .filter(emp => emp.accessLevel === "Editor" || emp.accessLevel === "Viewer")
+                                                                        .filter(emp => {
+                                                                            const searchTerm = (collaboratorSearch[realIdx] || '').toLowerCase();
+                                                                            return !searchTerm || emp.name.toLowerCase().includes(searchTerm) ||
+                                                                                (emp.email && emp.email.toLowerCase().includes(searchTerm));
+                                                                        });
+
+                                                                    if (filteredEmployees.length === 0) {
+                                                                        return (
+                                                                            <div className="text-center py-8">
+                                                                                <MdPersonAddAlt1 className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                                                                                <p className="text-sm text-gray-500">
+                                                                                    {collaboratorSearch[realIdx]
+                                                                                        ? 'No employees found matching your search'
+                                                                                        : 'No employees available'}
+                                                                                </p>
+                                                                            </div>
+                                                                        );
+                                                                    }
+
+                                                                    return (
+                                                                        <ul className="space-y-2">
+                                                                            {filteredEmployees.map(emp => {
+                                                                                const isSelected = (selectedCollaborators[realIdx] || []).includes(emp.employeeId);
+                                                                                return (
+                                                                                    <li key={emp.employeeId}>
+                                                                                        <label className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all duration-200 ${isSelected
+                                                                                            ? 'bg-[#EFF6FF] border-[#2563EB] shadow-sm'
+                                                                                            : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                                                                                            }`}>
+                                                                                            <input
+                                                                                                type="checkbox"
+                                                                                                checked={isSelected}
+                                                                                                onChange={() => handleToggleCollaborator(realIdx, emp.employeeId)}
+                                                                                                disabled={savingProposal[p._id]}
+                                                                                                className="w-4 h-4 text-[#2563EB] rounded focus:ring-2 focus:ring-[#2563EB] cursor-pointer"
+                                                                                            />
+                                                                                            <div className="flex-1 min-w-0">
+                                                                                                <div className="flex items-center gap-2">
+                                                                                                    <span className="text-[14px] font-medium text-gray-900 truncate">{emp.name}</span>
+                                                                                                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${emp.accessLevel === "Editor"
+                                                                                                        ? "bg-[#FEF9C3] text-[#CA8A04]"
+                                                                                                        : "bg-[#F3F4F6] text-[#4B5563]"
+                                                                                                        }`}>
+                                                                                                        {emp.accessLevel}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                                {emp.email && (
+                                                                                                    <p className="text-xs text-gray-500 truncate mt-0.5">{emp.email}</p>
+                                                                                                )}
+                                                                                            </div>
+                                                                                        </label>
+                                                                                    </li>
+                                                                                );
+                                                                            })}
+                                                                        </ul>
+                                                                    );
+                                                                })()}
+                                                            </div>
+
+                                                            {/* Footer buttons */}
+                                                            <div className="p-4 border-t border-[#E5E7EB] bg-gray-50 flex gap-2">
+                                                                <button
+                                                                    className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg hover:bg-[#1d4ed8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm shadow-sm"
+                                                                    onClick={() => handleSaveCollaborators(realIdx)}
+                                                                    disabled={savingProposal[p._id]}
+                                                                >
+                                                                    {savingProposal[p._id] ? 'Saving...' : 'Save Changes'}
+                                                                </button>
+                                                                <button
+                                                                    className="px-4 py-2.5 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+                                                                    onClick={() => {
+                                                                        setShowAddPersonIdx(null);
+                                                                        setSelectedCollaborators(prev => ({ ...prev, [realIdx]: [] }));
+                                                                        setCollaboratorSearch(prev => ({ ...prev, [realIdx]: '' }));
+                                                                    }}
+                                                                    disabled={savingProposal[p._id]}
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </td>
 
                                             <td className="px-4 py-2">
                                                 {editIdx === realIdx ? (
@@ -1411,13 +1512,13 @@ const Dashboard = () => {
                                                     </div>
                                                 ) : (
                                                     <button
-                                                        className={`flex items-center gap-1 transition-colors ${role === "Viewer" || (role !== "company" && !(p.currentEditor && p.currentEditor.email === userEmail)) || savingProposal[p._id]
+                                                        className={`flex items-center gap-1 transition-colors ${role === "Viewer" || (role !== "company" && !(p.collaborators && p.collaborators.some(c => c.email === userEmail))) || savingProposal[p._id]
                                                             ? "text-[#9CA3AF] cursor-not-allowed opacity-50"
                                                             : "text-[#2563EB] hover:text-[#1D4ED8]"
                                                             }`}
-                                                        title={role === "Viewer" ? "Viewer cannot edit proposals" : (role !== "company" && !(p.currentEditor && p.currentEditor.email === userEmail)) ? "Only current editor can edit this proposal" : savingProposal[p._id] ? "Saving..." : "Edit Details"}
-                                                        onClick={role === "Viewer" || (role !== "company" && !(p.currentEditor && p.currentEditor.email === userEmail)) || savingProposal[p._id] ? undefined : () => handleEditClick(realIdx, p)}
-                                                        disabled={role === "Viewer" || (role !== "company" && !(p.currentEditor && p.currentEditor.email === userEmail)) || savingProposal[p._id]}
+                                                        title={role === "Viewer" ? "Viewer cannot edit proposals" : (role !== "company" && !(p.collaborators && p.collaborators.some(c => c.email === userEmail))) ? "Only collaborators can edit this proposal" : savingProposal[p._id] ? "Saving..." : "Edit Details"}
+                                                        onClick={role === "Viewer" || (role !== "company" && !(p.collaborators && p.collaborators.some(c => c.email === userEmail))) || savingProposal[p._id] ? undefined : () => handleEditClick(realIdx, p)}
+                                                        disabled={role === "Viewer" || (role !== "company" && !(p.collaborators && p.collaborators.some(c => c.email === userEmail))) || savingProposal[p._id]}
                                                     >
                                                         <MdOutlineEdit className="w-5 h-5" /> Edit
                                                     </button>
@@ -1528,7 +1629,7 @@ const Dashboard = () => {
                                 {showGrantDeleteOptions && <th className="px-4 py-2"></th>}
                                 <th className="px-4 py-2 text-left font-medium">Opportunity Title</th>
                                 <th className="px-4 py-2 text-left font-medium">Agency Name</th>
-                                <th className="px-4 py-2 text-left font-medium">Current Editor</th>
+                                <th className="px-4 py-2 text-left font-medium">Collaborators</th>
                                 <th className="px-4 py-2 text-left font-medium">Close Date</th>
                                 <th className="px-4 py-2 text-left font-medium">Status</th>
                                 <th className="px-4 py-2 text-left font-medium">Submitted Date</th>
@@ -1564,109 +1665,181 @@ const Dashboard = () => {
 
                                             <td className="px-4 py-2">{p.AGENCY_NAME || p.client || "Not Provided"}</td>
 
-                                            {p.currentEditor && p.currentEditor.email === userEmail ? (
-                                                <td className="px-4 py-2 relative">
-                                                    <div className="flex items-center gap-2">
-                                                        <span>{userName.split(" ")[0]} (You)</span>
+                                            <td className="px-4 py-2 relative">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    {p.collaborators && p.collaborators.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {p.collaborators.map((collab, idx) => (
+                                                                <span key={idx} className="px-2 py-1 bg-[#DBEAFE] text-[#2563EB] rounded-full text-xs">
+                                                                    {collab.fullName || collab.email}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-500">No Collaborators</span>
+                                                    )}
+                                                    {role === "company" && (
                                                         <button
-                                                            className="text-[#2563EB]"
-                                                            title="Assign Editor"
-                                                            onClick={() => setShowAddGrantPersonIdx(realIdx)}
+                                                            className="text-[#2563EB] hover:text-[#1d4ed8]"
+                                                            title="Manage Collaborators"
+                                                            onClick={() => {
+                                                                setShowAddGrantPersonIdx(realIdx);
+                                                                setSelectedGrantCollaborators(prev => ({
+                                                                    ...prev,
+                                                                    [realIdx]: p.collaborators ? p.collaborators.map(c => c._id) : []
+                                                                }));
+                                                                setGrantCollaboratorSearch(prev => ({ ...prev, [realIdx]: '' }));
+                                                            }}
                                                         >
                                                             <MdPersonAddAlt1 className="w-4 h-4" />
                                                         </button>
-                                                    </div>
-                                                    {showAddGrantPersonIdx === realIdx && (
-                                                        <>
-                                                            {/* Backdrop blur overlay for the table */}
-                                                            <div className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm z-10" />
-
-                                                            {/* Dropdown with scrollable content */}
-                                                            <div className="absolute bg-white border border-[#E5E7EB] rounded-md shadow-lg z-20 mt-4 w-40 max-h-48 overflow-hidden">
-                                                                <div className="p-3 border-b border-[#E5E7EB]">
-                                                                    <h2 className="text-[14px] font-medium text-gray-800">Assign Editor</h2>
-                                                                    <button
-                                                                        className="text-gray-500 absolute top-3 right-3 hover:text-gray-700"
-                                                                        onClick={() => setShowAddGrantPersonIdx(null)}
-                                                                    >
-                                                                        <MdOutlineClose className="w-4 h-4" />
-                                                                    </button>
-                                                                </div>
-                                                                <div className="max-h-32 overflow-y-auto">
-                                                                    <ul className="p-1">
-                                                                        {/* Only show editors to assign as current editor */}
-                                                                        {employees.filter(emp => emp.name !== userName && emp.accessLevel === "Editor").map(emp => (
-                                                                            <li key={emp.name} className="mb-1">
-                                                                                <button
-                                                                                    className="block px-3 py-2 bg-gray-50 rounded-md border border-gray-200 hover:bg-[#2563EB] hover:text-white hover:border-[#2563EB] w-full text-left text-[14px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                                    onClick={() => handleSetGrantCurrentEditor(realIdx, emp.employeeId)}
-                                                                                    disabled={savingGrantProposal[p._id]}
-                                                                                    title={savingGrantProposal[p._id] ? "Assigning editor..." : `Assign ${emp.name} as editor`}
-                                                                                >
-                                                                                    {emp.name}
-                                                                                </button>
-                                                                            </li>
-                                                                        ))}
-                                                                    </ul>
-                                                                </div>
-                                                            </div>
-                                                        </>
                                                     )}
-                                                </td>
-                                            ) : (
-                                                <td className="px-4 py-2 relative">
-                                                    <div className="flex items-center gap-2">
-                                                        <span>{p.currentEditor ? p.currentEditor.fullName : p.currentEditor ? p.currentEditor.email : p.currentEditor ? p.currentEditor.name : "No Editor Assigned"}</span>
-                                                        {role === "company" && (
-                                                            <button
-                                                                className="text-[#2563EB]"
-                                                                title="Assign Editor"
-                                                                onClick={() => setShowAddGrantPersonIdx(realIdx)}
-                                                            >
-                                                                <MdPersonAddAlt1 className="w-4 h-4" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    {showAddGrantPersonIdx === realIdx && (
-                                                        <>
-                                                            {/* Backdrop blur overlay for the table */}
-                                                            <div className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm z-10" />
+                                                </div>
+                                                {showAddGrantPersonIdx === realIdx && (
+                                                    <>
+                                                        {/* Backdrop blur overlay for the table */}
+                                                        <div className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm z-10" />
 
-                                                            {/* Dropdown with scrollable content */}
-                                                            <div className="absolute bg-white border border-[#E5E7EB] rounded-md shadow-lg z-20 mt-4 w-40 max-h-48 overflow-hidden">
-                                                                <div className="p-3 border-b border-[#E5E7EB]">
-                                                                    <h2 className="text-[14px] font-medium text-gray-800">Assign Editor</h2>
+                                                        {/* Dropdown with scrollable content */}
+                                                        <div className="absolute bg-white border border-[#E5E7EB] rounded-lg shadow-xl z-20 mt-4 w-80 max-h-[500px] overflow-hidden flex flex-col">
+                                                            {/* Header */}
+                                                            <div className="p-4 border-b border-[#E5E7EB] bg-gradient-to-r from-[#F9FAFB] to-white">
+                                                                <div className="flex items-center justify-between mb-3">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <MdPersonAddAlt1 className="w-5 h-5 text-[#2563EB]" />
+                                                                        <h2 className="text-[16px] font-semibold text-gray-800">Manage Collaborators</h2>
+                                                                    </div>
                                                                     <button
-                                                                        className="text-gray-500 absolute top-3 right-3 hover:text-gray-700 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                        onClick={() => setShowAddGrantPersonIdx(null)}
+                                                                        className="text-gray-400 hover:text-gray-600 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed p-1 rounded-md hover:bg-gray-100"
+                                                                        onClick={() => {
+                                                                            setShowAddGrantPersonIdx(null);
+                                                                            setSelectedGrantCollaborators(prev => ({ ...prev, [realIdx]: [] }));
+                                                                            setGrantCollaboratorSearch(prev => ({ ...prev, [realIdx]: '' }));
+                                                                        }}
                                                                         disabled={savingGrantProposal[p._id]}
-                                                                        title={savingGrantProposal[p._id] ? "Please wait..." : "Close editor assignment dropdown"}
+                                                                        title={savingGrantProposal[p._id] ? "Please wait..." : "Close collaborator selection"}
                                                                     >
-                                                                        <MdOutlineClose className="w-4 h-4" />
+                                                                        <MdOutlineClose className="w-5 h-5" />
                                                                     </button>
                                                                 </div>
-                                                                <div className="p-1">
-                                                                    <ul className="max-h-32 overflow-y-auto">
-                                                                        {/* Only show editors to assign as current editor */}
-                                                                        {employees.filter(emp => emp.name !== userName && emp.accessLevel === "Editor").map(emp => (
-                                                                            <li key={emp.name} className="mb-1">
-                                                                                <button
-                                                                                    className="block px-3 py-2 bg-gray-50 rounded-md border border-gray-200 hover:bg-[#2563EB] hover:text-white hover:border-[#2563EB] w-full text-left text-[14px] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                                    onClick={() => handleSetGrantCurrentEditor(realIdx, emp.employeeId)}
-                                                                                    disabled={savingGrantProposal[p._id]}
-                                                                                    title={savingGrantProposal[p._id] ? "Assigning editor..." : `Assign ${emp.name} as editor`}
-                                                                                >
-                                                                                    {emp.name}
-                                                                                </button>
-                                                                            </li>
-                                                                        ))}
-                                                                    </ul>
+
+                                                                {/* Selected count badge */}
+                                                                {(selectedGrantCollaborators[realIdx] || []).length > 0 && (
+                                                                    <div className="flex items-center gap-2 mt-2">
+                                                                        <span className="text-xs text-gray-600">
+                                                                            {(selectedGrantCollaborators[realIdx] || []).length} selected
+                                                                        </span>
+                                                                        <span className="h-1 w-1 bg-gray-400 rounded-full"></span>
+                                                                        <span className="text-xs text-gray-600">
+                                                                            {employees.filter(emp => (emp.accessLevel === "Editor" || emp.accessLevel === "Viewer") &&
+                                                                                (!grantCollaboratorSearch[realIdx] || emp.name.toLowerCase().includes((grantCollaboratorSearch[realIdx] || '').toLowerCase()))).length} total
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Search input */}
+                                                                <div className="relative mt-3">
+                                                                    <MdOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Search employees..."
+                                                                        value={grantCollaboratorSearch[realIdx] || ''}
+                                                                        onChange={(e) => setGrantCollaboratorSearch(prev => ({ ...prev, [realIdx]: e.target.value }))}
+                                                                        className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
+                                                                        disabled={savingGrantProposal[p._id]}
+                                                                    />
                                                                 </div>
                                                             </div>
-                                                        </>
-                                                    )}
-                                                </td>
-                                            )}
+
+                                                            {/* Employee list */}
+                                                            <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
+                                                                {(() => {
+                                                                    const filteredEmployees = employees
+                                                                        .filter(emp => emp.accessLevel === "Editor" || emp.accessLevel === "Viewer")
+                                                                        .filter(emp => {
+                                                                            const searchTerm = (grantCollaboratorSearch[realIdx] || '').toLowerCase();
+                                                                            return !searchTerm || emp.name.toLowerCase().includes(searchTerm) ||
+                                                                                (emp.email && emp.email.toLowerCase().includes(searchTerm));
+                                                                        });
+
+                                                                    if (filteredEmployees.length === 0) {
+                                                                        return (
+                                                                            <div className="text-center py-8">
+                                                                                <MdPersonAddAlt1 className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                                                                                <p className="text-sm text-gray-500">
+                                                                                    {grantCollaboratorSearch[realIdx]
+                                                                                        ? 'No employees found matching your search'
+                                                                                        : 'No employees available'}
+                                                                                </p>
+                                                                            </div>
+                                                                        );
+                                                                    }
+
+                                                                    return (
+                                                                        <ul className="space-y-2">
+                                                                            {filteredEmployees.map(emp => {
+                                                                                const isSelected = (selectedGrantCollaborators[realIdx] || []).includes(emp.employeeId);
+                                                                                return (
+                                                                                    <li key={emp.employeeId}>
+                                                                                        <label className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all duration-200 ${isSelected
+                                                                                            ? 'bg-[#EFF6FF] border-[#2563EB] shadow-sm'
+                                                                                            : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                                                                                            }`}>
+                                                                                            <input
+                                                                                                type="checkbox"
+                                                                                                checked={isSelected}
+                                                                                                onChange={() => handleToggleGrantCollaborator(realIdx, emp.employeeId)}
+                                                                                                disabled={savingGrantProposal[p._id]}
+                                                                                                className="w-4 h-4 text-[#2563EB] rounded focus:ring-2 focus:ring-[#2563EB] cursor-pointer"
+                                                                                            />
+                                                                                            <div className="flex-1 min-w-0">
+                                                                                                <div className="flex items-center gap-2">
+                                                                                                    <span className="text-[14px] font-medium text-gray-900 truncate">{emp.name}</span>
+                                                                                                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${emp.accessLevel === "Editor"
+                                                                                                        ? "bg-[#FEF9C3] text-[#CA8A04]"
+                                                                                                        : "bg-[#F3F4F6] text-[#4B5563]"
+                                                                                                        }`}>
+                                                                                                        {emp.accessLevel}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                                {emp.email && (
+                                                                                                    <p className="text-xs text-gray-500 truncate mt-0.5">{emp.email}</p>
+                                                                                                )}
+                                                                                            </div>
+                                                                                        </label>
+                                                                                    </li>
+                                                                                );
+                                                                            })}
+                                                                        </ul>
+                                                                    );
+                                                                })()}
+                                                            </div>
+
+                                                            {/* Footer buttons */}
+                                                            <div className="p-4 border-t border-[#E5E7EB] bg-gray-50 flex gap-2">
+                                                                <button
+                                                                    className="flex-1 px-4 py-2.5 bg-[#2563EB] text-white rounded-lg hover:bg-[#1d4ed8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm shadow-sm"
+                                                                    onClick={() => handleSaveGrantCollaborators(realIdx)}
+                                                                    disabled={savingGrantProposal[p._id]}
+                                                                >
+                                                                    {savingGrantProposal[p._id] ? 'Saving...' : 'Save Changes'}
+                                                                </button>
+                                                                <button
+                                                                    className="px-4 py-2.5 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+                                                                    onClick={() => {
+                                                                        setShowAddGrantPersonIdx(null);
+                                                                        setSelectedGrantCollaborators(prev => ({ ...prev, [realIdx]: [] }));
+                                                                        setGrantCollaboratorSearch(prev => ({ ...prev, [realIdx]: '' }));
+                                                                    }}
+                                                                    disabled={savingGrantProposal[p._id]}
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </td>
 
                                             <td className="px-4 py-2">
                                                 {editGrantIdx === realIdx ? (
@@ -1748,13 +1921,13 @@ const Dashboard = () => {
                                                     </div>
                                                 ) : (
                                                     <button
-                                                        className={`flex items-center gap-1 transition-colors ${role === "Viewer" || (role !== "company" && !(p.currentEditor && p.currentEditor.email === userEmail)) || savingGrantProposal[p._id]
+                                                        className={`flex items-center gap-1 transition-colors ${role === "Viewer" || (role !== "company" && !(p.collaborators && p.collaborators.some(c => c.email === userEmail))) || savingGrantProposal[p._id]
                                                             ? "text-[#9CA3AF] cursor-not-allowed opacity-50"
                                                             : "text-[#2563EB] hover:text-[#1D4ED8]"
                                                             }`}
-                                                        title={role === "Viewer" ? "Viewer cannot edit grant proposals" : (role !== "company" && !(p.currentEditor && p.currentEditor.email === userEmail)) ? "Only current editor can edit this grant proposal" : savingGrantProposal[p._id] ? "Saving..." : "Edit Details"}
-                                                        onClick={role === "Viewer" || (role !== "company" && !(p.currentEditor && p.currentEditor.email === userEmail)) || savingGrantProposal[p._id] ? undefined : () => handleEditGrantClick(realIdx, p)}
-                                                        disabled={role === "Viewer" || (role !== "company" && !(p.currentEditor && p.currentEditor.email === userEmail)) || savingGrantProposal[p._id]}
+                                                        title={role === "Viewer" ? "Viewer cannot edit grant proposals" : (role !== "company" && !(p.collaborators && p.collaborators.some(c => c.email === userEmail))) ? "Only collaborators can edit this grant proposal" : savingGrantProposal[p._id] ? "Saving..." : "Edit Details"}
+                                                        onClick={role === "Viewer" || (role !== "company" && !(p.collaborators && p.collaborators.some(c => c.email === userEmail))) || savingGrantProposal[p._id] ? undefined : () => handleEditGrantClick(realIdx, p)}
+                                                        disabled={role === "Viewer" || (role !== "company" && !(p.collaborators && p.collaborators.some(c => c.email === userEmail))) || savingGrantProposal[p._id]}
                                                     >
                                                         <MdOutlineEdit className="w-5 h-5" /> Edit
                                                     </button>

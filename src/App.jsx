@@ -21,6 +21,7 @@ const GenerateProposalPage = lazy(() => import("./pages/GenerateProposalPage"));
 const BasicComplianceCheck = lazy(() => import("./pages/BasicComplianceCheck"));
 const AdvancedComplianceCheck = lazy(() => import("./pages/AdvancedComplianceCheck"));
 const Compliance = lazy(() => import("./pages/Compliance"));
+const CompetitorAnalysis = lazy(() => import("./pages/CompetitorAnalysis"));
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 
@@ -37,6 +38,8 @@ const StripeHostedPaymentPage = lazy(() => import("./pages/StripeHostedPaymentPa
 const AddOnsPage = lazy(() => import("./pages/AddOnsPage"));
 const ProposalDetails = lazy(() => import("./pages/ProposalDetails"));
 const RFPDetails = lazy(() => import("./pages/RFPDetails"));
+
+const Editor = lazy(() => import("./pages/Editor"));
 
 const App = () => {
   return (
@@ -83,6 +86,9 @@ const App = () => {
           </ProtectedRoutes>} />
           <Route path="/advanced-compliance-check" element={<ProtectedRoutes allowedRoles={["company", "Editor", "Viewer"]}>
             <AdvancedComplianceCheck />
+          </ProtectedRoutes>} />
+          <Route path="/competitor-analysis" element={<ProtectedRoutes allowedRoles={["company", "Editor", "Viewer"]}>
+            <CompetitorAnalysis />
           </ProtectedRoutes>} />
 
           <Route path="/dashboard" element={
@@ -151,6 +157,12 @@ const App = () => {
           <Route path="/rfp-details" element={
             <ProtectedRoutes allowedRoles={["company", "Editor", "Viewer"]}>
               <RFPDetails />
+            </ProtectedRoutes>
+          } />
+
+          <Route path="/editor/:type/:id" element={
+            <ProtectedRoutes allowedRoles={["company", "Editor", "Viewer"]}>
+              <Editor />
             </ProtectedRoutes>
           } />
 

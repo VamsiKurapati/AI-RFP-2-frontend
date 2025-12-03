@@ -30,7 +30,7 @@ const PaymentButton = ({
 
     return (
         <button
-            onClick={() => navigate('/payment/old')}
+            onClick={() => navigate('/payment')}
             className={classes}
             title={typeof children === 'string' ? children : "Upgrade your plan"}
         >
