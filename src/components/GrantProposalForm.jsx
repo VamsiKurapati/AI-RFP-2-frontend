@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { FaSpinner } from 'react-icons/fa';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import handleWordGeneration from './Generate_Word';
 import { validateNumberInput } from '../utils/sanitization';
+import { useNavigate } from 'react-router-dom';
 
 const GrantProposalForm = ({
     selectedGrant,
@@ -14,7 +14,7 @@ const GrantProposalForm = ({
     initialData = null
 }) => {
     const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/rfp`;
-
+    const navigate = useNavigate();
     const [isFetchingGrantProposal, setIsFetchingGrantProposal] = useState(false);
     const [grantProposalData, setGrantProposalData] = useState(initialData || {
         summary: "",
@@ -82,22 +82,25 @@ const GrantProposalForm = ({
                     Swal.fire({
                         icon: 'success',
                         title: 'Success',
-                        text: res.data.message || 'Grant proposal generated successfully. Downloading proposal...',
+                        text: res.data.message || 'Grant proposal generated successfully. Redirecting to editor...',
+                        confirmButtonColor: '#2563EB'
                     });
                     setTimeout(() => {
-                        handleWordGeneration(res.data.proposal);
+                        navigate(`/editor/grant/${grant.grantId}`, { state: { proposal: res.data.proposal } });
                     }, 1000);
                 } else if (res.data.message === "Grant Proposal Generation is still in progress. Please wait for it to complete.") {
                     Swal.fire({
                         icon: 'info',
                         title: 'In Progress',
                         text: res.data.message || 'Grant proposal is still being generated. Please wait for it to complete.',
+                        confirmButtonColor: '#2563EB'
                     });
                 } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
                         text: res.data.message || 'Failed to fetch Grant proposal.',
+                        confirmButtonColor: '#2563EB'
                     });
                 }
             } else {
@@ -105,6 +108,7 @@ const GrantProposalForm = ({
                     icon: 'error',
                     title: 'Error',
                     text: res.data.message || 'Failed to fetch Grant proposal.',
+                    confirmButtonColor: '#2563EB'
                 });
             }
         } catch (err) {

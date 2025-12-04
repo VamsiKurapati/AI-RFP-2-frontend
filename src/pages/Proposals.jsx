@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import NavbarComponent from './NavbarComponent';
-import { MdOutlineBookmark, MdOutlineBookmarkBorder, MdOutlineShare, MdOutlineCalendarMonth, MdOutlineChevronLeft, MdOutlineChevronRight } from 'react-icons/md';
+import { MdOutlineBookmark, MdOutlineBookmarkBorder, MdOutlineShare, MdOutlineCalendarMonth, MdOutlineChevronLeft, MdOutlineChevronRight, MdOutlineDelete } from 'react-icons/md';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
@@ -21,6 +21,8 @@ const API_ENDPOINTS = {
     UNSAVE_GRANT: `${API_BASE_URL}/rfp/unsaveGrant`,
     FETCH_RFP_PROPOSAL: `${API_BASE_URL}/rfp/getRFPProposal`,
     FETCH_GRANT_PROPOSAL: `${API_BASE_URL}/rfp/getGrantProposal`,
+    DELETE_DRAFT_PROPOSAL: `${API_BASE_URL}/proposals/deleteDraftproposal`,
+    DELETE_DRAFT_GRANT: `${API_BASE_URL}/proposals/deleteDraftGrant`,
 };
 
 const formatDate = (date) => {
@@ -32,8 +34,19 @@ const formatDate = (date) => {
     return dateObj.toLocaleDateString();
 };
 
-const ProposalCard = ({ proposal_info, onBookmark, onShare, onGenerate, onComplianceCheck, userRole, buttonText = "Generate", isCurrentEditor = true, isCurrentEditorOrViewer = true, isLoading = false, isFetching = false }) => (
+const ProposalCard = ({ proposal_info, onBookmark, onShare, onGenerate, onComplianceCheck, onDelete, userRole, buttonText = "Generate", isCurrentEditor = true, isCurrentEditorOrViewer = true, isLoading = false, isFetching = false, showDelete = false }) => (
     <div className="bg-white rounded-xl border border-[#E5E7EB] p-5 flex flex-col justify-between relative">
+        {/* Delete button - top right corner */}
+        {showDelete && onDelete && (
+            <button
+                onClick={onDelete}
+                className="absolute top-3 right-3 text-red-500 hover:text-red-700 transition-colors p-1 rounded hover:bg-red-50"
+                title="Delete draft proposal"
+                aria-label="Delete draft proposal"
+            >
+                <MdOutlineDelete className="w-5 h-5" />
+            </button>
+        )}
         <div>
             <div className="flex items-start justify-between">
                 <h3 className="font-semibold text-[18px] mb-1 text-[#111827] line-clamp-2">{proposal_info.title}</h3>
@@ -143,8 +156,19 @@ const ProposalCard = ({ proposal_info, onBookmark, onShare, onGenerate, onCompli
     </div>
 );
 
-const GrantCard = ({ grant_info, onBookmark, onShare, onGenerate, userRole, buttonText = "Generate", isCurrentEditor = true, isCurrentEditorOrViewer = true, isLoading = false, isFetching = false }) => (
+const GrantCard = ({ grant_info, onBookmark, onShare, onGenerate, onDelete, userRole, buttonText = "Generate", isCurrentEditor = true, isCurrentEditorOrViewer = true, isLoading = false, isFetching = false, showDelete = false }) => (
     <div className="bg-white rounded-xl border border-[#E5E7EB] p-5 flex flex-col justify-between relative">
+        {/* Delete button - top right corner */}
+        {showDelete && onDelete && (
+            <button
+                onClick={onDelete}
+                className="absolute top-3 right-3 text-red-500 hover:text-red-700 transition-colors p-1 rounded hover:bg-red-50"
+                title="Delete draft grant"
+                aria-label="Delete draft grant"
+            >
+                <MdOutlineDelete className="w-5 h-5" />
+            </button>
+        )}
         <div>
             <div className="flex items-start justify-between">
                 <h3 className="font-semibold text-[18px] mb-1 text-[#111827] line-clamp-2">{grant_info.OPPORTUNITY_TITLE || "Untitled Grant"}</h3>
@@ -828,6 +852,88 @@ const Proposals = () => {
         }
     };
 
+    const handleDeleteDraftProposal = async (proposal) => {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, delete it!'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const res = await axios.post(API_ENDPOINTS.DELETE_DRAFT_PROPOSAL, { rfpId: proposal._id }, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                });
+
+                if (res.status === 200) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Deleted!',
+                        text: 'Draft proposal has been deleted.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    // Remove from draft proposals list
+                    setDraftProposals((prev) => prev.filter((p) => p._id !== proposal._id));
+                }
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: err.response?.data?.message || 'Failed to delete draft proposal',
+                    confirmButtonColor: '#2563EB',
+                });
+            }
+        }
+    };
+
+    const handleDeleteDraftGrant = async (grant) => {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, delete it!'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const res = await axios.post(API_ENDPOINTS.DELETE_DRAFT_GRANT, { grantId: grant.grantId || grant._id }, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                });
+
+                if (res.status === 200) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Deleted!',
+                        text: 'Draft grant has been deleted.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    // Remove from draft grants list
+                    setDraftGrants((prev) => prev.filter((g) => (g.grantId || g._id) !== (grant.grantId || grant._id)));
+                }
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: err.response?.data?.message || 'Failed to delete draft grant',
+                    confirmButtonColor: '#2563EB',
+                });
+            }
+        }
+    };
+
     const handleGenerateGrant = (grant) => {
         setSelectedGrant(grant);
         setShowGrantProposalModal(true);
@@ -1203,12 +1309,14 @@ const Proposals = () => {
                                                     onShare={() => handleShare(proposal.link)}
                                                     onGenerate={() => handleContinue(proposal)}
                                                     onComplianceCheck={() => handleComplianceCheck(proposal)}
+                                                    onDelete={() => handleDeleteDraftProposal(proposal)}
                                                     userRole={role}
                                                     buttonText="Editor"
                                                     isCurrentEditor={isEditor}
                                                     isCurrentEditorOrViewer={isEditorOrViewer}
                                                     isLoading={savingStates[proposal._id] || false}
                                                     isFetching={isFetchingProposal}
+                                                    showDelete={true}
                                                 />
                                             );
                                         })}
@@ -1311,12 +1419,14 @@ const Proposals = () => {
                                                 onBookmark={() => isGrantSaved(grant._id) ? handleUnsaveGrant(grant._id) : handleSaveGrant(grant)}
                                                 onShare={() => handleShare(grant.OPPORTUNITY_NUMBER_LINK || '#')}
                                                 onGenerate={() => handleContinueGrant(grant)}
+                                                onDelete={() => handleDeleteDraftGrant(grant)}
                                                 userRole={role}
                                                 buttonText="Editor"
                                                 isCurrentEditor={isEditor}
                                                 isCurrentEditorOrViewer={isEditorOrViewer}
                                                 isLoading={savingStates[grant._id] || false}
                                                 isFetching={isFetchingGrantProposal}
+                                                showDelete={true}
                                             />
                                         );
                                     })

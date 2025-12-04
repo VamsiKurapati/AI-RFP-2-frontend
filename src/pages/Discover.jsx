@@ -872,6 +872,7 @@ const Discover = () => {
   // Add this state for upload loading
   const [isUploading, setIsUploading] = useState(false);
   const [fetchedRFPs, setFetchedRFPs] = useState(false);
+  const fetchRFPsRef = useRef(false); // Ref to prevent double calls
   const { role } = useUser();
   const { registerRef } = useOnboarding();
 
@@ -1168,7 +1169,7 @@ const Discover = () => {
     }
   };
 
-  const fetchRFPs = async () => {
+  const fetchRFPs = useCallback(async () => {
     setLoadingRecommended(true);
     setError(null);
     try {
@@ -1189,7 +1190,7 @@ const Discover = () => {
     } finally {
       setLoadingRecommended(false);
     }
-  };
+  }, []);
 
   // Grant-specific functions
   const fetchGrants = async () => {
@@ -1383,7 +1384,7 @@ const Discover = () => {
     const storedUser = localStorage.getItem("user");
     const storedSubscription = localStorage.getItem("subscription");
 
-    if (!storedUser || !storedSubscription || fetchedRFPs) return;
+    if (!storedUser || !storedSubscription || fetchedRFPs || fetchRFPsRef.current) return;
 
     try {
       const subscription = JSON.parse(storedSubscription);
@@ -1391,6 +1392,7 @@ const Discover = () => {
 
       const validPlans = ["Free", "Basic", "Pro", "Enterprise", "Custom Enterprise Plan"];
       if (validPlans.includes(plan)) {
+        fetchRFPsRef.current = true; // Mark as initiated
         fetchRFPs();
         setFetchedRFPs(true);
       }
@@ -2100,11 +2102,11 @@ const Discover = () => {
             icon: 'success',
             title: 'Success!',
             timer: 1500,
-            text: res.data.message || 'Grant proposal generated successfully. Downloading proposal...',
+            text: res.data.message || 'Grant proposal generated successfully. Redirecting to editor...',
             confirmButtonColor: '#2563EB'
           });
           setTimeout(() => {
-            handleWordGeneration(res.data.proposal);
+            navigate(`/editor/grant/${selectedGrant.grantId}`, { state: { proposal: res.data.proposal } });
           }, 1500);
         } else if (res.data.message === "Grant Proposal Generation is in Progress. Please visit again after some time.") {
           Swal.fire({

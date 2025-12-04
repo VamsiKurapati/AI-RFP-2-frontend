@@ -6,7 +6,6 @@ import { useProfile } from '../context/ProfileContext';
 import { AddTeamMemberModal, AddCaseStudyModal } from './CompanyProfileDashboard';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import handleWordGeneration from '../components/Generate_Word';
 
 const GenerateProposalPage = () => {
   const location = useLocation();
@@ -42,7 +41,7 @@ const GenerateProposalPage = () => {
             text: res.data.message || 'Proposal generated successfully. Downloading proposal...',
           });
           setTimeout(() => {
-            handleWordGeneration(res.data.proposal);
+            navigate(`/editor/rfp/${proposal._id}`, { state: { proposal: res.data.proposal } });
           }, 1500);
         } else if (res.data.message === "Proposal Generation is in Progress. Please visit again after some time.") {
           Swal.fire({

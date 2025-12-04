@@ -2,6 +2,7 @@ import { DocumentEditor } from "@onlyoffice/document-editor-react";
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { MdClose } from "react-icons/md";
 
 // --- Helpers ---
 function onDocumentReady(event) {
@@ -206,9 +207,26 @@ const Editor = () => {
 
             {showEditor && config && (
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative" }}>
-                    <div style={{ padding: "10px", background: "#eee", borderBottom: "1px solid #ccc", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span>Editing: {config.document?.title || (type === 'proposal' ? proposalData?.title : proposalData?.OPPORTUNITY_TITLE) || 'Document'}</span>
-                        <button onClick={handleCloseEditor} style={{ padding: "5px 15px", background: "#6c757d", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>Close</button>
+                    <div style={{ padding: "4px", background: "#eee", borderBottom: "1px solid #ccc", display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
+                        <button
+                            onClick={handleCloseEditor}
+                            style={{
+                                padding: "8px",
+                                background: "#9ca3af",
+                                color: "#dc2626",
+                                border: "none",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                width: "32px",
+                                height: "32px"
+                            }}
+                            title="Close editor"
+                        >
+                            <MdClose size={20} />
+                        </button>
                     </div>
 
                     <div style={{ flex: 1, position: "relative" }}>
