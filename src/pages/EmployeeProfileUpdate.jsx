@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { MdOutlineSave, MdOutlineBusinessCenter, MdOutlineDomain } from "react-icons/md";
@@ -6,43 +6,6 @@ import PhoneNumberInput, { validatePhoneNumber } from '../components/PhoneNumber
 import LocationInput from '../components/LocationInput';
 import { useEmployeeProfile } from "../context/EmployeeProfileContext";
 import Swal from "sweetalert2";
-
-const INDUSTRY_OPTIONS = [
-    "Information Technology",
-    "Healthcare",
-    "Finance",
-    "Education",
-    "Manufacturing",
-    "Retail",
-    "Construction",
-    "Consulting",
-    "Marketing",
-    "Legal",
-    "Real Estate",
-    "Transportation",
-    "Hospitality",
-    "Other",
-];
-
-const EMPLOYEE_OPTIONS = [
-    "1-10",
-    "11-50",
-    "51-200",
-    "201-500",
-    "501-1000",
-    "1001-5000",
-    "5001-10000",
-    "10000+",
-];
-
-const getYearOptions = () => {
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let y = currentYear; y >= 1950; y--) {
-        years.push(y.toString());
-    }
-    return years;
-};
 
 // Reusable input component
 const FormInput = ({

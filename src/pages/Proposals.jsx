@@ -7,7 +7,6 @@ import { useUser } from '../context/UserContext';
 import { useOnboarding } from '../context/OnboardingContext';
 import Swal from 'sweetalert2';
 import GrantProposalForm from '../components/GrantProposalForm';
-import handleWordGeneration from '../components/Generate_Word';
 import OnboardingGuide from '../components/OnboardingGuide';
 
 // Constants
@@ -1101,11 +1100,11 @@ const Proposals = () => {
                         icon: 'success',
                         title: 'Success',
                         timer: 1500,
-                        text: res.data.message || 'Grant proposal generated successfully. Downloading proposal...',
+                        text: res.data.message || 'Grant proposal generated successfully. Redirecting to editor...',
                         confirmButtonColor: '#2563EB'
                     });
                     setTimeout(() => {
-                        handleWordGeneration(res.data.proposal);
+                        navigate(`/editor/grant/${selectedGrant.grantId}`, { state: { proposal: res.data.proposal } });
                     }, 1500);
                 } else if (res.data.message === "Grant Proposal Generation is in Progress. Please visit again after some time.") {
                     Swal.fire({
