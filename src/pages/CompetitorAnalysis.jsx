@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import NavbarComponent from "./NavbarComponent";
 import { IoIosArrowBack, IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
-import { MdOutlineArrowBack, MdTrendingUp, MdBarChart, MdCheckCircle } from "react-icons/md";
+import { MdOutlineArrowBack, MdTrendingUp, MdBarChart, MdCheckCircle, MdWarning } from "react-icons/md";
 import { FaTrophy, FaDollarSign } from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -10,12 +10,66 @@ const CompetitorAnalysis = () => {
     const navigate = useNavigate();
     const [competitorData, setCompetitorData] = useState(null);
     const [rfpTitle, setRfpTitle] = useState("");
+    const [hasErrorData, setHasErrorData] = useState(false);
     const [openSections, setOpenSections] = useState({
         competitors: true,
         pricingBenchmarks: true,
         winFrequencySummary: true,
         trends: true,
     });
+
+    // Helper function to check if data contains error/fallback messages
+    const isErrorData = (data) => {
+        if (!data) return false;
+
+        // Check for explicit error field
+        if (data.error && typeof data.error === 'string' &&
+            (data.error.toLowerCase().includes('fallback') ||
+                data.error.toLowerCase().includes('unable to fetch') ||
+                data.error.toLowerCase().includes('error'))) {
+            return true;
+        }
+
+        // Check if fields contain error messages instead of expected data structures
+        const errorPatterns = [
+            'fallback data',
+            'unable to fetch',
+            'unable to generate',
+            'technical error',
+            'error',
+            'unavailable'
+        ];
+
+        const hasErrorPattern = (value) => {
+            if (typeof value === 'string') {
+                const lowerValue = value.toLowerCase();
+                return errorPatterns.some(pattern => lowerValue.includes(pattern));
+            }
+            return false;
+        };
+
+        // Check competitors field
+        if (data.competitors && typeof data.competitors === 'string' && hasErrorPattern(data.competitors)) {
+            return true;
+        }
+
+        // Check pricing_benchmarks field
+        if (data.pricing_benchmarks && typeof data.pricing_benchmarks === 'string' && hasErrorPattern(data.pricing_benchmarks)) {
+            return true;
+        }
+
+        // Check trends field
+        if (data.trends && typeof data.trends === 'string' && hasErrorPattern(data.trends)) {
+            return true;
+        }
+
+        // Check win_frequency_summary field
+        if (data.win_frequency_summary && typeof data.win_frequency_summary === 'string' && hasErrorPattern(data.win_frequency_summary)) {
+            return true;
+        }
+
+        return false;
+    };
 
     const toggleSection = (section) => {
         setOpenSections(prev => ({
@@ -25,106 +79,19 @@ const CompetitorAnalysis = () => {
     };
 
     useEffect(() => {
-        // const incoming = location.state && location.state.data;
-        const report = {
-            "status": "success",
-            "competitors": [
-                {
-                    "name": "Oracle (Primavera Unifier Native Services)",
-                    "win_frequency": "35-40%",
-                    "strengths": [
-                        "Native platform provider with direct Primavera Unifier expertise",
-                        "Integrated cost and schedule management capabilities",
-                        "Real-time data entry and quality control automation",
-                        "Advanced earned value management and forecasting",
-                        "Enterprise-level reporting and multi-project visibility",
-                        "Document management and workflow automation",
-                        "Direct integration with Primavera P6 Enterprise Project Portfolio Management"
-                    ],
-                    "typical_pricing": "$150,000-$400,000 annually for project delivery partner services (based on project complexity, data volume, and reporting requirements)"
-                },
-                {
-                    "name": "Deloitte Consulting LLP",
-                    "win_frequency": "25-30%",
-                    "strengths": [
-                        "Extensive government and public sector project delivery experience",
-                        "Strong data management and quality assurance capabilities",
-                        "Comprehensive reporting and decision support services",
-                        "Multi-disciplinary team expertise in infrastructure projects",
-                        "Risk management and forecasting capabilities",
-                        "Change management and stakeholder coordination expertise"
-                    ],
-                    "typical_pricing": "$200,000-$500,000 annually for project delivery partner services (premium positioning due to consulting brand and government sector expertise)"
-                },
-                {
-                    "name": "Jacobs Engineering Group",
-                    "win_frequency": "20-25%",
-                    "strengths": [
-                        "Deep infrastructure and capital project delivery experience",
-                        "Specialized expertise in airport and transportation projects",
-                        "Advanced project controls and cost management",
-                        "Real-time progress tracking and digital documentation",
-                        "Subcontractor and trade package management expertise",
-                        "Schedule optimization and forecasting capabilities"
-                    ],
-                    "typical_pricing": "$180,000-$450,000 annually for project delivery partner services (competitive mid-to-premium range)"
-                },
-                {
-                    "name": "AECOM",
-                    "win_frequency": "18-22%",
-                    "strengths": [
-                        "Global infrastructure and project delivery expertise",
-                        "Strong data management and reporting systems",
-                        "Airport and transportation sector specialization",
-                        "Digital progress documentation and photo management",
-                        "RFI and submittal tracking capabilities",
-                        "Integrated cost and schedule forecasting"
-                    ],
-                    "typical_pricing": "$160,000-$420,000 annually for project delivery partner services"
-                },
-                {
-                    "name": "Turner Construction Company",
-                    "win_frequency": "15-20%",
-                    "strengths": [
-                        "Extensive construction project delivery experience",
-                        "Proven expertise in cost control and budget management",
-                        "Strong subcontractor coordination and management",
-                        "Real-time project data entry and quality control",
-                        "Comprehensive progress reporting and forecasting",
-                        "Digital documentation and photo logging systems"
-                    ],
-                    "typical_pricing": "$140,000-$380,000 annually for project delivery partner services"
-                }
-            ],
-            "pricing_benchmarks": {
-                "low": "$140,000",
-                "average": "$270,000",
-                "high": "$500,000"
-            },
-            "trends": [
-                "Increased demand for real-time project data management and visibility in government infrastructure projects",
-                "Growing emphasis on quality control and data accuracy in project reporting",
-                "Integration of digital documentation and progress photography in project delivery",
-                "Adoption of earned value management and advanced forecasting methodologies",
-                "Expansion of Primavera Unifier adoption across public sector agencies",
-                "Rising focus on subcontractor and trade package management transparency",
-                "Demand for integrated cost and schedule management solutions"
-            ],
-            "win_frequency_summary": {
-                "leader": "Oracle at 35-40% (native platform advantage and integrated capabilities)",
-                "average": "21.6% (across all five competitors)",
-                "challenger": "Turner Construction at 15-20% (strong execution but less software integration advantage)"
-            }
+        const incoming = location.state ? location.state : null;
+
+        if (incoming) {
+            const report = incoming?.report || {};
+            setCompetitorData(report);
+            setRfpTitle(incoming?.rfp_title || "");
+
+            // Check if the data contains error/fallback messages
+            setHasErrorData(isErrorData(report));
+        } else {
+            // If no data, navigate back
+            navigate('/advanced-compliance-check');
         }
-        // if (incoming && incoming.report) {
-        //     setCompetitorData(incoming.report);
-        //     setRfpTitle(location.state.rfpTitle || "");
-        // } else {
-        //     // If no data, navigate back
-        //     navigate('/advanced-compliance-check');
-        // }
-        setCompetitorData(report);
-        setRfpTitle("RFP Title" || "");
     }, [location.state, navigate]);
 
     if (!competitorData) {
@@ -166,6 +133,26 @@ const CompetitorAnalysis = () => {
                     </div>
                 </div>
 
+                {/* Error/Warning Banner */}
+                {hasErrorData && (
+                    <div className="mb-8 bg-gradient-to-r from-[#FEF3C7] to-[#FDE68A] border-2 border-[#FBBF24] rounded-xl p-6 shadow-lg">
+                        <div className="flex items-start gap-4">
+                            <MdWarning className="w-6 h-6 text-[#D97706] shrink-0 mt-1" />
+                            <div className="flex-1">
+                                <h3 className="text-[18px] font-bold text-[#92400E] mb-2">Limited Data Available</h3>
+                                <p className="text-[14px] text-[#78350F] leading-relaxed">
+                                    The competitor analysis could not be completed due to technical issues. The system has provided fallback information, but manual review may be required for accurate competitor insights.
+                                </p>
+                                {competitorData.error && (
+                                    <p className="text-[13px] text-[#92400E] mt-2 font-medium italic">
+                                        {competitorData.error}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Competitors Section */}
                 <div className="mb-10">
                     {openSections.competitors ? (
@@ -178,61 +165,77 @@ const CompetitorAnalysis = () => {
                                 <IoIosArrowUp className="w-6 h-6 text-[#2563EB] shrink-0" />
                             </button>
                             <div className="space-y-6">
-                                {competitorData.competitors && competitorData.competitors.map((competitor, idx) => {
-                                    const rankColors = [
-                                        "from-[#FFD700] to-[#FFA500]", // Gold for 1st
-                                        "from-[#C0C0C0] to-[#808080]", // Silver for 2nd
-                                        "from-[#CD7F32] to-[#A0522D]", // Bronze for 3rd
-                                        "from-[#E5E7EB] to-[#D1D5DB]", // Gray for others
-                                        "from-[#E5E7EB] to-[#D1D5DB]"
-                                    ];
-                                    return (
-                                        <div key={idx} className="bg-white border-2 border-[#E5E7EB] rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300 relative overflow-hidden">
-                                            {/* Rank indicator */}
-                                            <div className={`absolute top-0 left-0 w-2 h-full bg-gradient-to-b ${rankColors[idx] || rankColors[3]}`}></div>
+                                {Array.isArray(competitorData.competitors) && competitorData.competitors.length > 0 ? (
+                                    competitorData.competitors.map((competitor, idx) => {
+                                        const rankColors = [
+                                            "from-[#FFD700] to-[#FFA500]", // Gold for 1st
+                                            "from-[#C0C0C0] to-[#808080]", // Silver for 2nd
+                                            "from-[#CD7F32] to-[#A0522D]", // Bronze for 3rd
+                                            "from-[#E5E7EB] to-[#D1D5DB]", // Gray for others
+                                            "from-[#E5E7EB] to-[#D1D5DB]"
+                                        ];
+                                        return (
+                                            <div key={idx} className="bg-white border-2 border-[#E5E7EB] rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300 relative overflow-hidden">
+                                                {/* Rank indicator */}
+                                                <div className={`absolute top-0 left-0 w-2 h-full bg-gradient-to-b ${rankColors[idx] || rankColors[3]}`}></div>
 
-                                            <div className="ml-4">
-                                                <div className="flex items-start justify-between mb-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${rankColors[idx] || rankColors[3]} flex items-center justify-center text-white font-bold text-[18px] shadow-md`}>
-                                                            {idx + 1}
-                                                        </div>
-                                                        <h3 className="text-[20px] font-bold text-[#111827]">{competitor.name}</h3>
-                                                    </div>
-                                                    <span className="bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] text-white px-4 py-2 rounded-lg text-[14px] font-semibold shadow-md flex items-center gap-2">
-                                                        <MdTrendingUp className="w-4 h-4" />
-                                                        {competitor.win_frequency}
-                                                    </span>
-                                                </div>
-
-                                                <div className="mb-5">
-                                                    <div className="flex items-center gap-2 mb-3">
-                                                        <MdCheckCircle className="w-5 h-5 text-[#10B981]" />
-                                                        <h4 className="text-[18px] font-bold text-[#111827]">Strengths</h4>
-                                                    </div>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 ml-7">
-                                                        {competitor.strengths && competitor.strengths.map((strength, strengthIdx) => (
-                                                            <div key={strengthIdx} className="flex items-start gap-2 bg-[#F0F9FF] rounded-lg p-3 border-l-4 border-[#2563EB]">
-                                                                <span className="text-[#2563EB] mt-1 font-bold">✓</span>
-                                                                <span className="text-[14px] text-[#374151] leading-relaxed">{strength}</span>
+                                                <div className="ml-4">
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${rankColors[idx] || rankColors[3]} flex items-center justify-center text-white font-bold text-[18px] shadow-md`}>
+                                                                {idx + 1}
                                                             </div>
-                                                        ))}
+                                                            <h3 className="text-[20px] font-bold text-[#111827]">{competitor.name}</h3>
+                                                        </div>
+                                                        <span className="bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] text-white px-4 py-2 rounded-lg text-[14px] font-semibold shadow-md flex items-center gap-2">
+                                                            <MdTrendingUp className="w-4 h-4" />
+                                                            {competitor.win_frequency}
+                                                        </span>
                                                     </div>
-                                                </div>
 
-                                                <div className="bg-gradient-to-r from-[#FEF3C7] to-[#FDE68A] border-2 border-[#FBBF24] rounded-xl p-5 shadow-sm">
-                                                    <div className="flex items-start gap-3">
-                                                        <FaDollarSign className="w-6 h-6 text-[#D97706] mt-1" />
-                                                        <div>
-                                                            <p className="text-[14px] font-semibold text-[#92400E] mb-1">Typical Pricing</p>
-                                                            <p className="text-[15px] text-[#78350F] font-medium leading-relaxed">{competitor.typical_pricing}</p>
+                                                    <div className="mb-5">
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <MdCheckCircle className="w-5 h-5 text-[#10B981]" />
+                                                            <h4 className="text-[18px] font-bold text-[#111827]">Strengths</h4>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 ml-7">
+                                                            {competitor.strengths && competitor.strengths.map((strength, strengthIdx) => (
+                                                                <div key={strengthIdx} className="flex items-start gap-2 bg-[#F0F9FF] rounded-lg p-3 border-l-4 border-[#2563EB]">
+                                                                    <span className="text-[#2563EB] mt-1 font-bold">✓</span>
+                                                                    <span className="text-[14px] text-[#374151] leading-relaxed">{strength}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-gradient-to-r from-[#FEF3C7] to-[#FDE68A] border-2 border-[#FBBF24] rounded-xl p-5 shadow-sm">
+                                                        <div className="flex items-start gap-3">
+                                                            <FaDollarSign className="w-6 h-6 text-[#D97706] mt-1" />
+                                                            <div>
+                                                                <p className="text-[14px] font-semibold text-[#92400E] mb-1">Typical Pricing</p>
+                                                                <p className="text-[15px] text-[#78350F] font-medium leading-relaxed">{competitor.typical_pricing}</p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="bg-gradient-to-r from-[#FEE2E2] to-[#FECACA] border-2 border-[#EF4444] rounded-xl p-6 shadow-md">
+                                        <div className="flex items-start gap-3">
+                                            <MdWarning className="w-6 h-6 text-[#DC2626] shrink-0 mt-1" />
+                                            <div className="flex-1">
+                                                <p className="text-[16px] font-semibold text-[#991B1B] mb-2">Competitor Analysis Unavailable</p>
+                                                <p className="text-[14px] text-[#7F1D1D] leading-relaxed">
+                                                    {typeof competitorData.competitors === 'string'
+                                                        ? competitorData.competitors
+                                                        : 'Unable to fetch competitor analysis data. Manual review required.'}
+                                                </p>
+                                            </div>
                                         </div>
-                                    );
-                                })}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ) : (
@@ -259,29 +262,48 @@ const CompetitorAnalysis = () => {
                                     <IoIosArrowUp className="w-6 h-6 text-[#2563EB] shrink-0" />
                                 </button>
                                 <div className="bg-gradient-to-br from-white to-gray-50 border-2 border-[#E5E7EB] rounded-xl p-8 shadow-lg">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <div className="text-center bg-gradient-to-br from-[#FEE2E2] to-[#FECACA] rounded-xl p-6 border-2 border-[#EF4444] shadow-md transform hover:scale-105 transition-transform">
-                                            <div className="inline-flex items-center justify-center w-12 h-12 bg-[#EF4444] rounded-full mb-3">
-                                                <span className="text-white font-bold text-[18px]">↓</span>
+                                    {competitorData.pricing_benchmarks && typeof competitorData.pricing_benchmarks === 'object' &&
+                                        competitorData.pricing_benchmarks.low !== undefined &&
+                                        competitorData.pricing_benchmarks.average !== undefined &&
+                                        competitorData.pricing_benchmarks.high !== undefined ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                            <div className="text-center bg-gradient-to-br from-[#FEE2E2] to-[#FECACA] rounded-xl p-6 border-2 border-[#EF4444] shadow-md transform hover:scale-105 transition-transform">
+                                                <div className="inline-flex items-center justify-center w-12 h-12 bg-[#EF4444] rounded-full mb-3">
+                                                    <span className="text-white font-bold text-[18px]">↓</span>
+                                                </div>
+                                                <p className="text-[14px] font-semibold text-[#991B1B] mb-2 uppercase tracking-wide">Low</p>
+                                                <p className="text-[32px] font-bold text-[#DC2626]">{competitorData.pricing_benchmarks.low}</p>
                                             </div>
-                                            <p className="text-[14px] font-semibold text-[#991B1B] mb-2 uppercase tracking-wide">Low</p>
-                                            <p className="text-[32px] font-bold text-[#DC2626]">{competitorData.pricing_benchmarks.low}</p>
-                                        </div>
-                                        <div className="text-center bg-gradient-to-br from-[#FEF3C7] to-[#FDE68A] rounded-xl p-6 border-2 border-[#FBBF24] shadow-md transform hover:scale-105 transition-transform">
-                                            <div className="inline-flex items-center justify-center w-12 h-12 bg-[#FBBF24] rounded-full mb-3">
-                                                <span className="text-white font-bold text-[18px]">→</span>
+                                            <div className="text-center bg-gradient-to-br from-[#FEF3C7] to-[#FDE68A] rounded-xl p-6 border-2 border-[#FBBF24] shadow-md transform hover:scale-105 transition-transform">
+                                                <div className="inline-flex items-center justify-center w-12 h-12 bg-[#FBBF24] rounded-full mb-3">
+                                                    <span className="text-white font-bold text-[18px]">→</span>
+                                                </div>
+                                                <p className="text-[14px] font-semibold text-[#92400E] mb-2 uppercase tracking-wide">Average</p>
+                                                <p className="text-[32px] font-bold text-[#D97706]">{competitorData.pricing_benchmarks.average}</p>
                                             </div>
-                                            <p className="text-[14px] font-semibold text-[#92400E] mb-2 uppercase tracking-wide">Average</p>
-                                            <p className="text-[32px] font-bold text-[#D97706]">{competitorData.pricing_benchmarks.average}</p>
-                                        </div>
-                                        <div className="text-center bg-gradient-to-br from-[#D1FAE5] to-[#A7F3D0] rounded-xl p-6 border-2 border-[#10B981] shadow-md transform hover:scale-105 transition-transform">
-                                            <div className="inline-flex items-center justify-center w-12 h-12 bg-[#10B981] rounded-full mb-3">
-                                                <span className="text-white font-bold text-[18px]">↑</span>
+                                            <div className="text-center bg-gradient-to-br from-[#D1FAE5] to-[#A7F3D0] rounded-xl p-6 border-2 border-[#10B981] shadow-md transform hover:scale-105 transition-transform">
+                                                <div className="inline-flex items-center justify-center w-12 h-12 bg-[#10B981] rounded-full mb-3">
+                                                    <span className="text-white font-bold text-[18px]">↑</span>
+                                                </div>
+                                                <p className="text-[14px] font-semibold text-[#065F46] mb-2 uppercase tracking-wide">High</p>
+                                                <p className="text-[32px] font-bold text-[#059669]">{competitorData.pricing_benchmarks.high}</p>
                                             </div>
-                                            <p className="text-[14px] font-semibold text-[#065F46] mb-2 uppercase tracking-wide">High</p>
-                                            <p className="text-[32px] font-bold text-[#059669]">{competitorData.pricing_benchmarks.high}</p>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div className="bg-gradient-to-r from-[#FEE2E2] to-[#FECACA] border-2 border-[#EF4444] rounded-xl p-6 shadow-md">
+                                            <div className="flex items-start gap-3">
+                                                <MdWarning className="w-6 h-6 text-[#DC2626] shrink-0 mt-1" />
+                                                <div className="flex-1">
+                                                    <p className="text-[16px] font-semibold text-[#991B1B] mb-2">Pricing Benchmarks Unavailable</p>
+                                                    <p className="text-[14px] text-[#7F1D1D] leading-relaxed">
+                                                        {typeof competitorData.pricing_benchmarks === 'string'
+                                                            ? competitorData.pricing_benchmarks
+                                                            : 'Unable to generate pricing benchmarks. Manual review required.'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ) : (
@@ -309,29 +331,54 @@ const CompetitorAnalysis = () => {
                                     <IoIosArrowUp className="w-6 h-6 text-[#2563EB] shrink-0" />
                                 </button>
                                 <div className="bg-gradient-to-br from-white to-gray-50 border-2 border-[#E5E7EB] rounded-xl p-6 shadow-lg">
-                                    <div className="space-y-4">
-                                        <div className="bg-gradient-to-r from-[#FEF3C7] to-[#FDE68A] border-l-4 border-[#FBBF24] rounded-lg p-4 shadow-sm">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <FaTrophy className="w-5 h-5 text-[#D97706]" />
-                                                <p className="text-[14px] font-bold text-[#92400E] uppercase tracking-wide">Leader</p>
-                                            </div>
-                                            <p className="text-[16px] font-semibold text-[#78350F] ml-7">{competitorData.win_frequency_summary.leader}</p>
+                                    {competitorData.win_frequency_summary && typeof competitorData.win_frequency_summary === 'object' &&
+                                        (competitorData.win_frequency_summary.leader !== undefined ||
+                                            competitorData.win_frequency_summary.average !== undefined ||
+                                            competitorData.win_frequency_summary.challenger !== undefined) ? (
+                                        <div className="space-y-4">
+                                            {competitorData.win_frequency_summary.leader && (
+                                                <div className="bg-gradient-to-r from-[#FEF3C7] to-[#FDE68A] border-l-4 border-[#FBBF24] rounded-lg p-4 shadow-sm">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <FaTrophy className="w-5 h-5 text-[#D97706]" />
+                                                        <p className="text-[14px] font-bold text-[#92400E] uppercase tracking-wide">Leader</p>
+                                                    </div>
+                                                    <p className="text-[16px] font-semibold text-[#78350F] ml-7">{competitorData.win_frequency_summary.leader}</p>
+                                                </div>
+                                            )}
+                                            {competitorData.win_frequency_summary.average && (
+                                                <div className="bg-gradient-to-r from-[#DBEAFE] to-[#BFDBFE] border-l-4 border-[#3B82F6] rounded-lg p-4 shadow-sm">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <MdBarChart className="w-5 h-5 text-[#2563EB]" />
+                                                        <p className="text-[14px] font-bold text-[#1E40AF] uppercase tracking-wide">Average</p>
+                                                    </div>
+                                                    <p className="text-[16px] font-semibold text-[#1E3A8A] ml-7">{competitorData.win_frequency_summary.average}</p>
+                                                </div>
+                                            )}
+                                            {competitorData.win_frequency_summary.challenger && (
+                                                <div className="bg-gradient-to-r from-[#F3F4F6] to-[#E5E7EB] border-l-4 border-[#6B7280] rounded-lg p-4 shadow-sm">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <MdTrendingUp className="w-5 h-5 text-[#4B5563]" />
+                                                        <p className="text-[14px] font-bold text-[#374151] uppercase tracking-wide">Challenger</p>
+                                                    </div>
+                                                    <p className="text-[16px] font-semibold text-[#1F2937] ml-7">{competitorData.win_frequency_summary.challenger}</p>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="bg-gradient-to-r from-[#DBEAFE] to-[#BFDBFE] border-l-4 border-[#3B82F6] rounded-lg p-4 shadow-sm">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <MdBarChart className="w-5 h-5 text-[#2563EB]" />
-                                                <p className="text-[14px] font-bold text-[#1E40AF] uppercase tracking-wide">Average</p>
+                                    ) : (
+                                        <div className="bg-gradient-to-r from-[#FEE2E2] to-[#FECACA] border-2 border-[#EF4444] rounded-xl p-6 shadow-md">
+                                            <div className="flex items-start gap-3">
+                                                <MdWarning className="w-6 h-6 text-[#DC2626] shrink-0 mt-1" />
+                                                <div className="flex-1">
+                                                    <p className="text-[16px] font-semibold text-[#991B1B] mb-2">Win Frequency Summary Unavailable</p>
+                                                    <p className="text-[14px] text-[#7F1D1D] leading-relaxed">
+                                                        {typeof competitorData.win_frequency_summary === 'string'
+                                                            ? competitorData.win_frequency_summary
+                                                            : 'Unable to generate win frequency summary. Manual review required.'}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <p className="text-[16px] font-semibold text-[#1E3A8A] ml-7">{competitorData.win_frequency_summary.average}</p>
                                         </div>
-                                        <div className="bg-gradient-to-r from-[#F3F4F6] to-[#E5E7EB] border-l-4 border-[#6B7280] rounded-lg p-4 shadow-sm">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <MdTrendingUp className="w-5 h-5 text-[#4B5563]" />
-                                                <p className="text-[14px] font-bold text-[#374151] uppercase tracking-wide">Challenger</p>
-                                            </div>
-                                            <p className="text-[16px] font-semibold text-[#1F2937] ml-7">{competitorData.win_frequency_summary.challenger}</p>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
                         ) : (
@@ -347,7 +394,7 @@ const CompetitorAnalysis = () => {
                 )}
 
                 {/* Trends */}
-                {competitorData.trends && competitorData.trends.length > 0 && (
+                {competitorData.trends && (
                     <div className="mb-10">
                         {openSections.trends ? (
                             <div className="border-2 border-[#2563EB] rounded-xl p-6">
@@ -359,16 +406,32 @@ const CompetitorAnalysis = () => {
                                     <IoIosArrowUp className="w-6 h-6 text-[#2563EB] shrink-0" />
                                 </button>
                                 <div className="bg-gradient-to-br from-white to-gray-50 border-2 border-[#E5E7EB] rounded-xl p-6 shadow-lg">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {competitorData.trends.map((trend, idx) => (
-                                            <div key={idx} className="flex items-start gap-3 bg-gradient-to-r from-[#F0F9FF] to-[#E0F2FE] rounded-lg p-4 border-l-4 border-[#2563EB] shadow-sm hover:shadow-md transition-shadow">
-                                                <div className="bg-[#2563EB] rounded-full p-1.5 mt-0.5">
-                                                    <MdTrendingUp className="w-4 h-4 text-white" />
+                                    {Array.isArray(competitorData.trends) && competitorData.trends.length > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {competitorData.trends.map((trend, idx) => (
+                                                <div key={idx} className="flex items-start gap-3 bg-gradient-to-r from-[#F0F9FF] to-[#E0F2FE] rounded-lg p-4 border-l-4 border-[#2563EB] shadow-sm hover:shadow-md transition-shadow">
+                                                    <div className="bg-[#2563EB] rounded-full p-1.5 mt-0.5">
+                                                        <MdTrendingUp className="w-4 h-4 text-white" />
+                                                    </div>
+                                                    <span className="text-[14px] text-[#374151] leading-relaxed font-medium flex-1">{trend}</span>
                                                 </div>
-                                                <span className="text-[14px] text-[#374151] leading-relaxed font-medium flex-1">{trend}</span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="bg-gradient-to-r from-[#FEE2E2] to-[#FECACA] border-2 border-[#EF4444] rounded-xl p-6 shadow-md">
+                                            <div className="flex items-start gap-3">
+                                                <MdWarning className="w-6 h-6 text-[#DC2626] shrink-0 mt-1" />
+                                                <div className="flex-1">
+                                                    <p className="text-[16px] font-semibold text-[#991B1B] mb-2">Market Trends Unavailable</p>
+                                                    <p className="text-[14px] text-[#7F1D1D] leading-relaxed">
+                                                        {typeof competitorData.trends === 'string'
+                                                            ? competitorData.trends
+                                                            : 'Unable to generate market trends. Manual review required.'}
+                                                    </p>
+                                                </div>
                                             </div>
-                                        ))}
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ) : (

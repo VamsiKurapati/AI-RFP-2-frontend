@@ -40,16 +40,14 @@ const AdvancedComplianceCheck = () => {
         setIsLoadingCompetitorAnalysis(true);
         try {
             const token = localStorage.getItem("token");
-            const incoming = location.state && location.state.data;
 
             // Prepare the request payload - you may need to adjust this based on what the API expects
             const payload = {
-                rfpTitle: rfpTitle,
-                proposalData: incoming || {}
+                rfpTitle: rfpTitle
             };
 
             const response = await axios.post(
-                `${import.meta.env.VITE_API_BASE_URL}/competitor-analysis`,
+                `${import.meta.env.VITE_API_BASE_URL}/proposals/competitor-analysis`,
                 payload,
                 {
                     headers: {
@@ -60,12 +58,7 @@ const AdvancedComplianceCheck = () => {
             );
 
             // Navigate to competitor analysis page with the response data
-            navigate('/competitor-analysis', {
-                state: {
-                    data: response.data,
-                    rfpTitle: rfpTitle
-                }
-            });
+            navigate('/competitor-analysis', { state: response.data.data || {} });
         } catch (error) {
             console.error('Error fetching competitor analysis:', error);
             Swal.fire({
